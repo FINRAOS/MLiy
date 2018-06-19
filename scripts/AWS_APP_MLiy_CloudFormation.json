@@ -1,0 +1,403 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Description" : "AWS Cloudformation Template for MLiy.\nCopyright 2017 MLiy Contributors\nLicensed under the Apache License, Version 2.0 (the \"License\");\nyou may not use this file except in compliance with the License.\nYou may obtain a copy of the License at\nhttp://www.apache.org/licenses/LICENSE-2.0\nUnless required by applicable law or agreed to in writing, software\ndistributed under the License is distributed on an \"AS IS\" BASIS,\nWITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.\nSee the License for the specific language governing permissions and\nlimitations under the License.",
+  "Parameters": {
+    "KeyName": {
+      "Description": "The SSH key pair to use",
+      "Type": "String"
+    },
+    "ImageId": {
+      "Description": "The AMI (Amazon Machine Image) to use",
+      "Type": "String"
+    },
+    "InstanceType": {
+      "Default": "t2.medium",
+      "Description": "The instance type to use",
+      "Type": "String"
+    },
+    "IamInstanceProfile": {
+      "Description": "The instance profile to use",
+      "Type": "String"
+    },
+    "SecurityGroups": {
+      "Description": "Security Groups to associate with Launch Configuration",
+      "Type": "List<AWS::EC2::SecurityGroup::Id>"
+    },
+    "SourceBucket": {
+      "Description": "The source S3 bucket where the installation script is located. Do not prefix with s3://",
+      "Type": "String"
+    },
+    "SourcePackage": {
+      "Default" : "odapweb.tar.gz",
+      "Description": "The name of the installation package",
+      "Type": "String"
+    },
+    "SourceScript": {
+      "Default" : "install.sh",
+      "Description": "The name of the installation script",
+      "Type": "String"
+    },
+    "elbName": {
+      "Description": "The name to use for the ELB",
+      "Type": "String",
+      "Default": "NOT_SET"
+    },
+    "elbSubnets": {
+      "Description": "The subnets to use for the ELB",
+      "Type": "CommaDelimitedList",
+      "Default": ""
+    },
+    "elbSecurityGroups": {
+      "Description": "The security group to use for the ELB",
+      "Type": "CommaDelimitedList",
+      "Default": ""
+    },
+    "elbSSLCertificateId": {
+      "Description": "The ARN of the SSL certificate to use. For more information about SSL certificates, see http://docs.aws.amazon.com/IAM/latest/UserGuide/ManagingServerCerts.html in the AWS Identity and Access Management documentation.",
+      "Type": "String",
+      "Default": ""
+    },
+    "elbhealthUrl": {
+      "Description": "The health check URL to use for the ELB (format: [PROTOCOL]:[PORT]/[PATH])",
+      "Type": "String",
+      "Default": "HTTPS:443/health"
+    },
+    "elbHealthyThreshold": {
+      "Description": "The number of consecutive health checks successes required before moving the instance to the Healthy state",
+      "Type": "String",
+      "Default": "3"
+    },
+    "elbUnhealthyThreshold": {
+      "Description": "The number of consecutive health check failures required before moving the instance to the Unhealthy state",
+      "Type": "String",
+      "Default": "5"
+    },
+    "elbInterval": {
+      "Description": "The approximate interval, in seconds, between health checks of an individual instance",
+      "Type": "String",
+      "Default": "20"
+    },
+    "elbTimeout": {
+      "Description": "The amount of time, in seconds, during which no response means a failed health check",
+      "Type": "String",
+      "Default": "5"
+    },
+    "asGroupMinSize": {
+      "Description": "The min size to use for the autoscaling group",
+      "Type": "Number",
+      "Default": "1"
+    },
+    "asGroupMaxSize": {
+      "Description": "The min size to use for the autoscaling group",
+      "Type": "Number",
+      "Default": "2"
+    },
+    "asVpcSubnets": {
+      "Description": "The subnet(s) to use for the autoscaling group",
+      "Type": "List<AWS::EC2::Subnet::Id>"
+    },
+    "asCooldown": {
+      "Description": "The number of seconds after a scaling activity is completed before any further scaling activities can start.",
+      "Type": "String",
+      "Default": "90000"
+    },
+    "asHealthCheckGracePeriod": {
+      "Description": "The length of time in seconds after a new EC2 instance comes into service that Auto Scaling starts checking its health.",
+      "Type": "Number",
+      "Default": "78000"
+    },
+    "asHealthCheckType": {
+      "Description": "The service you want the health status from, Amazon EC2 or Elastic Load Balancer. Valid values are EC2 or ELB.",
+      "Type": "String",
+      "Default": "ELB"
+    },
+    "asMinSuccessfulInstancesPercent": {
+      "Description": "Specifies the percentage of instances in an Auto Scaling rolling update that must signal success for an update to succeed.",
+      "Type": "Number",
+      "Default": "100"
+    },
+    "asPauseTime": {
+      "Description": "The amount of time that AWS CloudFormation pauses after making a change to a batch of instances to give those instances time to start software applications.",
+      "Type": "String",
+      "Default": "PT5M"
+    },
+    "signalCount": {
+      "Description": "The number of success signals AWS CloudFormation must receive before it sets the resource status as CREATE_COMPLETE",
+      "Type": "Number",
+      "Default": "1"
+    },
+    "signalTimeout": {
+      "Description": "The amount of time to wait before timing out due to not receiving a cfn-signal from instances in the autoscaling group",
+      "Type": "String",
+      "Default": "PT5M"
+    },
+    "OdapMgrHostname": {
+      "Description": "The Fully Qualified Hostname of MLiy Website application",
+      "Type": "String"
+    },
+    "DjangoSecretKey": {
+      "NoEcho": "true",
+      "Description": "The secret key for a particular Django installation. This is used to provide cryptographic signing, and should be set to a unique, unpredictable value.",
+      "Type": "String"
+    },
+    "LdapAuthUrl": {
+      "Description": "Specifies the LDAP server, the base DN, the attribute to use in the search, as well as the extra search filter to use.",
+      "Type": "String",
+      "Default": ""
+    },
+    "LdapBindDn": {
+      "Description": "A DN to bind with during the search phase.",
+      "Type": "String",
+      "Default": ""
+    },
+    "LdapBindPassword": {
+      "NoEcho": "true",
+      "Description": "A password to bind with during the search phase.",
+      "Type": "String",
+      "Default": ""
+    },
+    "LdapGroupAttribute": {
+      "Description": "Authorize member of this group to access",
+      "Type": "String",
+      "Default": ""
+    }
+  },
+  "Conditions": {
+    "CreateELB": {
+      "Fn::Not": [
+        {
+          "Fn::Equals": [
+            {
+              "Ref": "elbName"
+            },
+            "NOT_SET"
+          ]
+        }
+      ]
+    }
+  },
+  "Resources": {
+    "LaunchConfig": {
+      "Type": "AWS::AutoScaling::LaunchConfiguration",
+      "Properties": {
+        "ImageId": {
+          "Ref": "ImageId"
+        },
+        "KeyName": {
+          "Ref": "KeyName"
+        },
+        "SecurityGroups": {
+          "Ref": "SecurityGroups"
+        },
+        "InstanceType": {
+          "Ref": "InstanceType"
+        },
+        "IamInstanceProfile": {
+          "Ref": "IamInstanceProfile"
+        },
+        "UserData": {
+          "Fn::Base64": {
+            "Fn::Join": [
+              "",
+              [
+                "#!/bin/bash -xv\n",
+                "export SOURCE_BUCKET=",
+                {
+                  "Ref": "SourceBucket"
+                },
+                "\n",
+                "export ODAPMGR_HOSTNAME=",
+                {
+                  "Ref": "OdapMgrHostname"
+                },
+                "\n",
+                "export DJANGO_SECRET_KEY=",
+                {
+                  "Ref": "DjangoSecretKey"
+                },
+                "\n",
+                "export LDAP_AUTH_URL='",
+                {
+                  "Ref": "LdapAuthUrl"
+                },
+                "'\n",
+                "export LDAP_BIND_DN='",
+                {
+                  "Ref": "LdapBindDn"
+                },
+                "'\n",
+                "export LDAP_BIND_PASSWORD='",
+                {
+                  "Ref": "LdapBindPassword"
+                },
+                "'\n",
+                "export LDAP_GROUP_ATTRIBUTE='",
+                {
+                  "Ref": "LdapGroupAttribute"
+                },
+                "'\n",
+                "export SOURCE_SCRIPT=",
+                {
+                  "Ref": "SourceScript"
+                },
+                "\n",
+                "export SOURCE_PACKAGE=",
+                {
+                  "Ref": "SourcePackage"
+                },
+                "\n",
+                "yum install -y aws-cfn-bootstrap\n",
+                "useradd odapapp\n",
+                "export INSTALL_BASE=~odapapp;cd $INSTALL_BASE\n",
+                "mkdir odapweb logs;cd odapweb\n",
+                "aws s3 cp s3://$SOURCE_BUCKET/$SOURCE_PACKAGE .; tar xzf $SOURCE_PACKAGE; rm -rf $SOURCE_PACKAGE\n",
+                "bash scripts/$SOURCE_SCRIPT\n",
+                "/opt/aws/bin/cfn-signal -e $? --stack ", { "Ref": "AWS::StackName" },
+                " --resource AutoScalingGroup ",
+                " --region ", { "Ref" : "AWS::Region" }, "\n"
+              ]
+            ]
+          }
+        }
+      }
+    },
+    "ElasticLoadBalancer": {
+      "Condition": "CreateELB",
+      "Type": "AWS::ElasticLoadBalancing::LoadBalancer",
+      "Properties": {
+        "LoadBalancerName": {
+          "Ref": "elbName"
+        },
+        "Subnets": {
+          "Ref": "elbSubnets"
+        },
+        "SecurityGroups": {
+          "Ref": "elbSecurityGroups"
+        },
+        "Scheme": "internal",
+        "Listeners": [
+          {
+            "LoadBalancerPort": "443",
+            "InstancePort": "443",
+            "SSLCertificateId": {
+              "Ref": "elbSSLCertificateId"
+            },
+            "Protocol": "HTTPS",
+            "InstanceProtocol": "HTTPS"
+          }
+        ],
+        "HealthCheck": {
+          "Target": {
+            "Ref": "elbhealthUrl"
+          },
+          "HealthyThreshold": {
+            "Ref": "elbHealthyThreshold"
+          },
+          "UnhealthyThreshold": {
+            "Ref": "elbUnhealthyThreshold"
+          },
+          "Interval": {
+            "Ref": "elbInterval"
+          },
+          "Timeout": {
+            "Ref": "elbTimeout"
+          }
+        }
+      }
+    },
+    "AutoScalingGroup": {
+      "Type": "AWS::AutoScaling::AutoScalingGroup",
+      "CreationPolicy": {
+        "ResourceSignal": {
+          "Count": {
+            "Ref": "signalCount"
+          },
+          "Timeout": {
+            "Ref": "signalTimeout"
+          }
+        }
+      },
+      "UpdatePolicy": {
+        "AutoScalingRollingUpdate": {
+          "MaxBatchSize": {
+            "Ref": "asGroupMaxSize"
+          },
+          "MinInstancesInService": {
+            "Ref": "asGroupMinSize"
+          },
+          "MinSuccessfulInstancesPercent": {
+            "Ref": "asMinSuccessfulInstancesPercent"
+          },
+          "PauseTime": {
+            "Ref": "asPauseTime"
+          },
+          "SuspendProcesses": [
+            "HealthCheck",
+            "ReplaceUnhealthy",
+            "AZRebalance",
+            "AlarmNotification",
+            "ScheduledActions"
+          ],
+          "WaitOnResourceSignals": "true"
+        }
+      },
+      "Properties": {
+        "Cooldown": {
+          "Ref": "asCooldown"
+        },
+        "HealthCheckGracePeriod": {
+          "Ref": "asHealthCheckGracePeriod"
+        },
+        "HealthCheckType": {
+          "Ref": "asHealthCheckType"
+        },
+        "LaunchConfigurationName": {
+          "Ref": "LaunchConfig"
+        },
+        "MinSize": {
+          "Ref": "asGroupMinSize"
+        },
+        "MaxSize": {
+          "Ref": "asGroupMaxSize"
+        },
+        "VPCZoneIdentifier": {
+          "Ref": "asVpcSubnets"
+        },
+        "LoadBalancerNames": [
+          {
+            "Fn::If": [
+              "CreateELB",
+              {
+                "Ref": "ElasticLoadBalancer"
+              },
+              {
+                "Ref": "AWS::NoValue"
+              }
+            ]
+          }
+        ]
+      }
+    }
+  },
+  "Outputs": {
+    "LaunchConfigId": {
+      "Description": "Launch Config Identity",
+      "Value": {
+        "Ref": "LaunchConfig"
+      }
+    },
+    "ASGroupId": {
+      "Description": "Auto Scaling Group Identity",
+      "Value": {
+        "Ref": "AutoScalingGroup"
+      }
+    },
+    "ELBId": {
+      "Description": "Elastic Load Balancer Identity",
+      "Value": {
+        "Ref": "ElasticLoadBalancer"
+      },
+      "Condition" : "CreateELB"
+    }
+  }
+}

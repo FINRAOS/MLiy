@@ -1,0 +1,41 @@
+<!-- Copyright 2017 MLiy Contributors
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+     http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License. -->
+    <div class="container-fluid">
+      <div class="row">
+        <div class="col-sm-3 col-md-2 sidebar">
+          <ul class="nav nav-sidebar">
+            <li id="myinstances"><a href="/">My Dashboard<span class="sr-only">(current)</span></a></li>
+            <li id="teaminstances"><a href="{% url 'all-instances' %}">Team Dashboard</a></li>
+            <li id="payinstances"><a href="{% url 'bill-instances' %}">Billing Report</a></li>
+            {% if not user.is_authenticated or groupconfig.count < 1 or not emraccess and not ec2access %}
+              <li>
+                <a href="#">
+                <span class="glyphicon glyphicon-exclamation-sign" aria-hidden="true"></span>
+                <span class"sr-only"><small>(No Launches Authorized)</small></span>
+                </a>
+              </li>
+            {% else %}
+              {% if ec2access %}
+                {% if groupconfig.count < 2 %}
+                  <li id="launch-instance"><a href="{% url 'selectswconfig' grpid=groupconfig.first.id %}">Launch New Instance</a></li>
+                {% else %}
+                  <li id="launch-instance"><a href="{% url 'selectgrconfig' %}">Launch New Instance</a></li>
+                {% endif %}
+              {% endif %}
+              {% if emraccess %}
+                  <li id="launch-cluster"><a href="{% url 'selectemrconfig' %}">Launch New Cluster</a></li>
+              {%endif%}
+            {%endif%} 
+          </ul>
+        </div>

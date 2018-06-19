@@ -1,0 +1,91 @@
+<!-- Copyright 2017 MLiy Contributors
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+     http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License. -->
+{% extends 'odapweb/base-template.html' %}
+{% block content-main %}
+
+        <div class="col-sm-9 col-sm-offset-3 col-md-10 col-md-offset-2 main">
+          <h1 class="page-header">Launch New Instance</h1>
+
+          <h2 class="sub-header">Select New Instance Details</h2>
+          <div class="row">
+          <div class="col-md-8">
+            <div class="table-responsive">
+            <form id="pgform" method=post>
+            <div class="form-group">
+              <table class="table table-striped">
+                <tbody id="frmtable">
+                {% csrf_token %}
+                {{ form.as_table }}
+                </tbody>
+              </table>
+            <input class="btn" type="submit" value="Launch Instance" />
+            </div>
+            </form>
+            </div>
+          </div>
+          <div class="col-md-4">
+          <div class="panel panel-info">
+            <div class="panel-heading">
+              <h4 class="panel-title">Instance Info</h4>
+            </div>
+            <div id="instanceinfo" class="panel-body">
+              
+            </div>
+            <table id="iitable" class="table">
+            </table>
+          </div>
+
+          </div>
+          </div>
+        </div>
+{% endblock %}
+{% block javascript %}
+<script>
+
+$("#launch").addClass("active");
+
+populatePanel($("#id_instance_type").prop("options")[0].text);
+
+// bind to selection for the instance type, pull back specific information for each
+
+$("#id_instance_type").change(function() {
+  var select = $("#id_instance_type");
+  var selected = select.prop("selectedIndex");
+  var insttype = select.prop("options")[selected].text;
+  populatePanel(insttype);
+});
+
+function populatePanel( insttype ) {
+  var url = "/ajax/instanceinfo/" + insttype;
+  $.get(url, function(json) {
+    if( json === undefined ) {
+      $("#instanceinfo").text("Instance type not found.<br>No data available."); 
+      $("#iitable").html("");
+    }
+    var panel = $("#instanceinfo");
+    panel.text(json.pretty_name);
+    // reverse order?
+    var tbl = "<tr><td>Memory (GB)</td><td>"+ 
+      json.memory
+      + "<td></tr><tr><td>Cores</td><td>"+
+      json.vCPU
+      +"<td></tr><tr><td>ECU</td><td>"+
+      json.ECU+"<td></tr><tr><td>EBS Optimized</td><td>"+json.ebs_optimized+"<td></tr>";
+    $("#iitable").html(tbl);
+
+  }, "json");
+}
+
+</script> 
+{% endblock %}

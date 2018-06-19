@@ -1,0 +1,289 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Description": "AWS Cloudformation Template for MLiy\nCopyright 2017 MLiy Contributors\nLicensed under the Apache License, Version 2.0 (the \"License\");\nyou may not use this file except in compliance with the License.\nYou may obtain a copy of the License at\nhttp://www.apache.org/licenses/LICENSE-2.0\nUnless required by applicable law or agreed to in writing, software\ndistributed under the License is distributed on an \"AS IS\" BASIS,\nWITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.\nSee the License for the specific language governing permissions and\nlimitations under the License.",
+  "Parameters": {
+    "KeyName": {
+      "Description": "The key pair to use for SSH access",
+      "Type": "AWS::EC2::KeyPair::KeyName"
+    },
+    "ImageId": {
+      "Description": "The AMI to use",
+      "Type": "AWS::EC2::Image::Id"
+    },
+    "InstanceType": {
+      "Default": "r3.2xlarge",
+      "Description": "The instance type to use",
+      "Type": "String",
+      "AllowedValues": [
+        "r3.large",
+        "r3.xlarge",
+        "r3.2xlarge",
+        "r3.4xlarge",
+        "r3.8xlarge",
+        "g2.2xlarge",
+        "g2.8xlarge",
+        "p2.xlarge",
+        "p2.8xlarge",
+        "p2.16xlarge"
+      ],
+      "ConstraintDescription": "must be a valid EC2 instance type."
+    },
+    "IamInstanceProfile": {
+      "Description": "The instance profile to use",
+      "Type": "String"
+    },
+    "SecurityGroupIds": {
+      "Description": "Security Groups to associate with EC2 instance",
+      "Type": "List<AWS::EC2::SecurityGroup::Id>"
+    },
+    "SubnetId": {
+      "Description": "The ID of the subnet that you want to launch the instance into",
+      "Type": "AWS::EC2::Subnet::Id"
+    },
+    "AvailabilityZone": {
+      "Description": "The availability zone in the region to create the EBS volume in. It must contain the subnet ID specified.",
+      "Type": "AWS::EC2::AvailabilityZone::Name"
+    },
+    "VolumeEncrypted": {
+      "Default": "true",
+      "Description": "Indicates whether the EBS volume is encrypted or not.",
+      "Type": "String",
+      "AllowedValues": [
+        "true",
+        "false"
+      ],
+      "ConstraintDescription": "must be either true or false."
+    },
+    "KmsKeyId": {
+      "Description": "The ARN of the AWS Key Management Service (AWS KMS) master key that's used to encrypt the EBS volume.",
+      "Type": "String",
+      "Default": "NOT_SET"
+    },
+    "EBSVolumeDeviceName": {
+      "Description": "Device name to attach an EBS volume (Default no EBS volume attached)",
+      "Type": "String",
+      "Default": "No Volume"
+    },
+    "VolumeSize": {
+      "Description": "Size of the EBS volume in GiBs if attached",
+      "Type": "Number",
+      "Default": "100",
+      "MinValue": "1",
+      "MaxValue": "1000"
+    },
+    "UserData": {
+      "Description": "User Data to pass on to the EC2 instance in Base64",
+      "Type": "String",
+      "Default": ""
+    },
+    "ResourceSignalTimeout": {
+      "Description": "The length of time that AWS CloudFormation waits for a signal from an EC2 instance",
+      "Type": "String",
+      "Default": "PT90M"
+    }
+  },
+  "Mappings": {
+    "InstanceConfig": {
+      "r3.large": {
+        "EBSOptimized": "false"
+      },
+      "r3.xlarge": {
+        "EBSOptimized": "true"
+      },
+      "r3.2xlarge": {
+        "EBSOptimized": "true"
+      },
+      "r3.4xlarge": {
+        "EBSOptimized": "true"
+      },
+      "r3.8xlarge": {
+        "EBSOptimized": "false"
+      },
+      "g2.2xlarge": {
+        "EBSOptimized": "true"
+      },
+      "g2.8xlarge": {
+        "EBSOptimized": "false"
+      },
+      "p2.xlarge": {
+        "EBSOptimized": "true"
+      },
+      "p2.8xlarge": {
+        "EBSOptimized": "true"
+      },
+      "p2.16xlarge": {
+        "EBSOptimized": "true"
+      }
+    }
+  },
+  "Conditions": {
+    "setKmsKeyId": {
+      "Fn::Not": [
+        {
+          "Fn::Equals": [
+            {
+              "Ref": "KmsKeyId"
+            },
+            "NOT_SET"
+          ]
+        }
+      ]
+    },
+    "IsEBSOptimized": {
+      "Fn::Equals": [
+        {
+          "Fn::FindInMap": [
+            "InstanceConfig",
+            {
+              "Ref": "InstanceType"
+            },
+            "EBSOptimized"
+          ]
+        },
+        "true"
+      ]
+    },
+    "AttachVolume": {
+      "Fn::Not": [
+        {
+          "Fn::Equals": [
+            {
+              "Ref": "EBSVolumeDeviceName"
+            },
+            "No Volume"
+          ]
+        }
+      ]
+    }
+  },
+  "Resources": {
+    "EBSVolume": {
+      "Type": "AWS::EC2::Volume",
+      "Condition": "AttachVolume",
+      "DeletionPolicy": "Delete",
+      "Properties": {
+        "Size": {
+          "Ref": "VolumeSize"
+        },
+        "AvailabilityZone": {
+          "Ref": "AvailabilityZone"
+        },
+        "VolumeType": "gp2",
+        "Encrypted": {
+          "Ref": "VolumeEncrypted"
+        },
+        "KmsKeyId": {
+          "Fn::If": [
+            "setKmsKeyId",
+            {
+              "Ref": "KmsKeyId"
+            },
+            {
+              "Ref": "AWS::NoValue"
+            }
+          ]
+        }
+      }
+    },
+    "EC2Instance": {
+      "Type": "AWS::EC2::Instance",
+      "Properties": {
+        "ImageId": {
+          "Ref": "ImageId"
+        },
+        "KeyName": {
+          "Ref": "KeyName"
+        },
+        "SecurityGroupIds": {
+          "Ref": "SecurityGroupIds"
+        },
+        "SubnetId": {
+          "Ref": "SubnetId"
+        },
+        "InstanceType": {
+          "Ref": "InstanceType"
+        },
+        "IamInstanceProfile": {
+          "Ref": "IamInstanceProfile"
+        },
+        "Volumes": {
+          "Fn::If": [
+            "AttachVolume",
+            [
+              {
+                "VolumeId": {
+                  "Ref": "EBSVolume"
+                },
+                "Device": {
+                  "Ref": "EBSVolumeDeviceName"
+                }
+              }
+            ],
+            {
+              "Ref": "AWS::NoValue"
+            }
+          ]
+        },
+        "EbsOptimized": {
+          "Fn::If": [
+            "IsEBSOptimized",
+            "true",
+            "false"
+          ]
+        },
+        "UserData": {
+          "Ref": "UserData"
+        }
+      },
+      "CreationPolicy": {
+        "ResourceSignal": {
+          "Timeout": {
+            "Ref": "ResourceSignalTimeout"
+          }
+        }
+      }
+    }
+  },
+  "Outputs": {
+    "InstanceId": {
+      "Description": "InstanceId of the newly created EC2 instance",
+      "Value": {
+        "Ref": "EC2Instance"
+      }
+    },
+    "Device": {
+      "Condition": "AttachVolume",
+      "Value": {
+        "Ref": "EBSVolumeDeviceName"
+      },
+      "Description": "Device name for the attached volume"
+    },
+    "AZ": {
+      "Description": "Availability Zone of the newly created EC2 instance",
+      "Value": {
+        "Fn::GetAtt": [
+          "EC2Instance",
+          "AvailabilityZone"
+        ]
+      }
+    },
+    "PrivateIP": {
+      "Description": "Private IP address of the newly created EC2 instance",
+      "Value": {
+        "Fn::GetAtt": [
+          "EC2Instance",
+          "PrivateIp"
+        ]
+      }
+    },
+    "PrivateDNS": {
+      "Description": "Private DNSName of the newly created EC2 instance",
+      "Value": {
+        "Fn::GetAtt": [
+          "EC2Instance",
+          "PrivateDnsName"
+        ]
+      }
+    }
+  }
+}

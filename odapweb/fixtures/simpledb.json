@@ -1,0 +1,184 @@
+[{
+	"model": "odapweb.param",
+	"pk": 1,
+	"fields": {
+		"token": "SOURCE_BUCKET",
+		"replacement": ""
+	}
+}, {
+	"model": "odapweb.param",
+	"pk": 2,
+	"fields": {
+		"token": "SOURCE_SCRIPT",
+		"replacement": "install_ec2_MLiy.sh"
+	}
+}, {
+	"model": "odapweb.param",
+	"pk": 3,
+	"fields": {
+		"token": "SOURCE_PACKAGE",
+		"replacement": "odapweb.tar.gz"
+	}
+}, {
+	"model": "odapweb.param",
+	"pk": 4,
+	"fields": {
+		"token": "EBS_DEVICE",
+		"replacement": "/dev/xvdz"
+	}
+}, {
+	"model": "odapweb.param",
+	"pk": 5,
+	"fields": {
+		"token": "TIME_ZONE",
+		"replacement": "America/New_York"
+	}
+}, {
+	"model": "odapweb.param",
+	"pk": 6,
+	"fields": {
+		"token": "MLiyMGR_HOSTNAME",
+		"replacement": "https://"
+	}
+}, {
+	"model": "odapweb.param",
+	"pk": 7,
+	"fields": {
+		"token": "CRAN_REPO",
+		"replacement": "http://cran.us.r-project.org"
+	}
+}, {
+	"model": "odapweb.param",
+	"pk": 8,
+	"fields": {
+		"token": "PyPi_REPO",
+		"replacement": ""
+	}
+}, {
+	"model": "odapweb.param",
+	"pk": 9,
+	"fields": {
+		"token": "LDAP_HOST_NAME",
+		"replacement": ""
+	}
+}, {
+	"model": "odapweb.param",
+	"pk": 10,
+	"fields": {
+		"token": "LDAP_USER_ID",
+		"replacement": ""
+	}
+}, {
+	"model": "odapweb.param",
+	"pk": 11,
+	"fields": {
+		"token": "LDAP_USER_PASSWD_CMD",
+		"replacement": ""
+	}
+}, {
+	"model": "odapweb.param",
+	"pk": 12,
+	"fields": {
+		"token": "LDAP_BASE_DN",
+		"replacement": ""
+	}
+}, {
+	"model": "odapweb.param",
+	"pk": 13,
+	"fields": {
+		"token": "WILDCARD_PUBLIC_CERT",
+		"replacement": ""
+	}
+}, {
+	"model": "odapweb.param",
+	"pk": 14,
+	"fields": {
+		"token": "WILDCARD_PRIVATE_CERT",
+		"replacement": ""
+	}
+}, {
+	"model": "odapweb.param",
+	"pk": 15,
+	"fields": {
+		"token": "WILDCARD_CERTS_ARCHIVE",
+		"replacement": ""
+	}
+}, {
+	"model": "odapweb.param",
+	"pk": 16,
+	"fields": {
+		"token": "CUSTOM_ROOT_CERTS",
+		"replacement": ""
+	}
+}, {
+	"model": "odapweb.software_config",
+	"pk": 1,
+	"fields": {
+		"name": "TestConfig",
+		"user_data": null,
+		"cloud_formation": null,
+		"insert_ssh_key": false,
+		"ami_id": "ami-id",
+		"addtl_volume_kms_key": "",
+		"addtl_vol_dev_path": "/dev/xvdz",
+		"addtl_vol_default_size": 100,
+		"addtl_vol_description": "Encrypted Home Directory Size",
+		"instance_name": "AWSLXMLIYTST",
+		"html_description": "No description.",
+		"has_progress_bar": false,
+		"params": [],
+		"compatible_instancetypes": [1],
+		"permitted_groups": [1]
+	}
+}, {
+	"model": "odapweb.securitygroup",
+	"pk": 1,
+	"fields": {
+		"sgid": "sg-11111111",
+		"name": "MLiy_APP"
+	}
+}, {
+	"model": "odapweb.securitygroup",
+	"pk": 2,
+	"fields": {
+		"sgid": "sg-00000000",
+		"name": "sample-group1"
+	}
+}, {
+	"model": "odapweb.securitygroup",
+	"pk": 3,
+	"fields": {
+		"sgid": "sg-00020002",
+		"name": "sample-group2"
+	}
+}, {
+	"model": "odapweb.securitygroup",
+	"pk": 4,
+	"fields": {
+		"sgid": "sg-03000300",
+		"name": "sample-group3"
+	}
+}, {
+	"model": "odapweb.lastrefreshed",
+	"pk": 1,
+	"fields": {
+		"updated_at": "2018-06-11T20:09:31.274Z"
+	}
+}, {
+	"model": "odapweb.groupconfig",
+	"pk": 1,
+	"fields": {
+		"group": 1,
+		"name": "MLiyTestConfig",
+		"AD_groupname": "",
+		"override_instance_name": "AWSLXMLiyTST",
+		"ags": "MLiy",
+		"cost_center": "OPD900",
+		"sdlc": "DEV",
+		"key_name": "APP_MLiy_DEV_17-1",
+		"iam_instance_profile_name": "APP_MLiy_CLIENT",
+		"exclInstances": [],
+		"default_security_grps": [1, 2, 3, 4],
+		"optional_security_grps": []
+	}
+}]
