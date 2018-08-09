@@ -23,6 +23,7 @@ set -xv
 DATE=$(date +%m%d%Y%H%M%S)
 ODAPMGR_URL="https://${ODAPMGR_HOSTNAME}"
 
+
 # Install Yum Packages
 yum install -y python34 mod24_ldap mod24_ssl mod24_wsgi-python34 python34-pip python34-devel mysql-devel git gcc  
 
@@ -30,6 +31,7 @@ yum install -y python34 mod24_ldap mod24_ssl mod24_wsgi-python34 python34-pip py
 sed -i -e "s|{{{staging_bucket}}}|$SOURCE_BUCKET|g" odapweb/settings.py
 sed -i -e "s|{{{odapmgr_location}}}|$ODAPMGR_URL|g" odapweb/settings.py
 sed -i -e "s|{{{django_secret_key}}}|$DJANGO_SECRET_KEY|g" odapweb/settings.py
+sed -i -e "s|{{{hostname}}}|${ODAPMGR_HOSTNAME}|g" odapweb/settings.py
 
 cd $INSTALL_BASE
 
@@ -52,6 +54,10 @@ pip install -r odapweb/odapweb/requirements.txt
 cd odapweb
 python manage.py makemigrations 
 python manage.py migrate 
+python manage.py makemigrations odapweb
+python manage.py migrate
+python manage.py loaddata simpledb
+python manage.py loaddata instances
 
 EOF
 

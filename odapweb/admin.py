@@ -22,6 +22,7 @@ from . import models
 from django.core.management import call_command
 from django.views.decorators.cache import never_cache
 from django.contrib.auth.models import User, Group
+from django.contrib.auth.admin import UserAdmin
 
 class MyAdminSite(admin.sites.AdminSite):
 	@never_cache
@@ -37,8 +38,8 @@ class SoftwareConfigAdmin(admin.ModelAdmin):
 	save_on_top = True
 	fieldsets = (
 		(None, {
-			'fields': ('name', 'params', 'user_data','cloud_formation', 'insert_ssh_key', 'ami_id', 'compatible_instancetypes',
-					   'permitted_groups', 'instance_name', 'html_description')
+			'fields': ('name', 'params', 'user_data','cloud_formation', 'ami_id', 'compatible_instancetypes',
+					   'permitted_groups', 'instance_name', 'html_description','has_progress_bar')
 		}),
 		('Storage and KMS', {
 			# 'classes' : ('collapse',),
@@ -83,20 +84,17 @@ class GroupConfigAdmin(admin.ModelAdmin):
 
 admin_site = MyAdminSite(name="myadmin")
 
-admin_site.register(User)
+admin_site.register(User,UserAdmin)
 admin_site.register(Group)
 
 admin_site.register(models.Software_Config, SoftwareConfigAdmin)
 admin_site.register(models.Volume, VolumeAdmin)
-admin_site.register(models.LastRefreshed)
 admin_site.register(models.Instance, InstanceAdmin)
 admin_site.register(models.Tag, TagAdmin)
 admin_site.register(models.Param, ParamAdmin)
 admin_site.register(models.InstanceType)
-admin_site.register(models.BillingData)
 admin_site.register(models.SecurityGroup)
 admin_site.register(models.GroupConfig, GroupConfigAdmin)
-admin_site.register(models.UserSSHKey)
 admin_site.register(models.Key)
 
 admin_site.site_header = "Administration"

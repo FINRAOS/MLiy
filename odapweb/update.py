@@ -36,8 +36,6 @@ def updateRefreshTime():
 
 
 tlock = threading.Lock()
-clock = threading.Lock()
-
 
 class InstanceUpdateThread(threading.Thread):
 	"""

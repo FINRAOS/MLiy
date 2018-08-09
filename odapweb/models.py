@@ -50,7 +50,7 @@ class Key(models.Model):
 
 class Param(models.Model):
 	token = models.CharField(max_length=50, help_text="A short, simple toekn to be replaced")
-	replacement = models.CharField(max_length=200, help_text="The text that replaces the token")
+	replacement = models.CharField(max_length=200, blank=True, help_text="The text that replaces the token")
 
 	def __str__(self):
 		return self.token + " = " + self.replacement
@@ -76,9 +76,7 @@ class Software_Config(models.Model):
 	name = models.CharField(max_length=50, help_text="A short, simple name to describe the configuration.")
 	user_data = models.ForeignKey(UserDataScript,help_text="Instance user data to be set when instance is to be instantiated.",null=True,blank=True)
 	cloud_formation = models.ForeignKey(CloudFormation,help_text="Instance user data to be set when instance is to be instantiated.",null=True,blank=True)
-	insert_ssh_key = models.BooleanField(default=False, help_text="User Data contains \
-a \{ssh_user_key\} token into which the user-defined ssh key can be inserted. Users with\
- no SSH key defined will not be able to launch this configuration.")
+	
 	ami_id = models.CharField(max_length=30, help_text="Amazon AMI id to instantiate with.")
 	
 	addtl_volume_kms_key = models.CharField(max_length=100, blank=True,
@@ -175,18 +173,6 @@ class SecurityGroup(models.Model):
 
 	def __str__(self):
 		return self.name
-
-
-class UserSSHKey(models.Model):
-	"""
-	Manages SSH Keys for users. At this point, it's a 1:1 relation
-	"""
-	userid = models.OneToOneField(User, primary_key=True)
-	public_key = models.TextField(help_text="SSH2-compatible RSA ssh public key.\
- <strong>NO VALIDATION IS DONE AT THIS TIME</strong>")
-
-	def __str__(self):
-		return self.userid
 
 
 class SingletonModel(models.Model):

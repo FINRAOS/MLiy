@@ -13,34 +13,11 @@ See the License for the specific language governing permissions and
 limitations under the License. -->
 {% extends 'odapweb/base-template.html' %}
 {% block extra-css %}
-<link rel="stylesheet" href="/static/jquery-ui/jquery-ui.min.css">
 {% endblock %}
 {% block content-main %}
         <div class="col-sm-9 col-sm-offset-3 col-md-10 col-md-offset-2 main">
           <h1 class="page-header">My View</h1>
 
-          <div class="row placeholders">
-            <div class="col-xs-6 col-sm-3 placeholder">
-              <img data-src="holder.js/200x200/auto/sky" class="img-responsive" alt="Generic placeholder thumbnail">
-              <h4>Instances</h4>
-              <span class="text-muted">What's running and what's not.</span>
-            </div>
-            <div class="col-xs-6 col-sm-3 placeholder">
-              <img data-src="holder.js/200x200/auto/vine" class="img-responsive" alt="Generic placeholder thumbnail">
-              <h4>Storage Status</h4>
-              <span class="text-muted">How much storage I am using</span>
-            </div>
-            <div class="col-xs-6 col-sm-3 placeholder">
-              <img data-src="holder.js/200x200/auto/sky" class="img-responsive" alt="Generic placeholder thumbnail">
-              <h4>Hourly Burn</h4>
-              <span class="text-muted">How much my running instances cost</span>
-            </div>
-            <div class="col-xs-6 col-sm-3 placeholder">
-              <img data-src="holder.js/200x200/auto/vine" class="img-responsive" alt="Generic placeholder thumbnail">
-              <h4>Monthly Storage Burn</h4>
-              <span class="text-muted">Instance EBS storage costs are calculated separately.</span>
-            </div>
-          </div>
           <div id="last-refresh" class="mx-auto pull-right refresh-button"><span class="glyphicon glyphicon-refresh"></span> <span id="last-refresh-text" class="refresh-button-text">Refresh Status</span></div>
           <div id="tableses">
             <div id="hiding-box">
@@ -83,14 +60,9 @@ limitations under the License. -->
           <div id='warning-box' class="alert alert-warning" role="alert" hidden="true">No warning!</div>
           <p class="alert alert-info">Use Instance Page to terminate an instance.</p>
         </div>
-        <div id="dialog-confirm" title="Are you running AppGate?" hidden="true">
-          <p><span class="ui-icon ui-icon-alert" style="float:left; margin:12px 12px 20px 0;"></span>In order to connect to the instance you need to make sure AppGate is running, that you're logged into, and
-          that it hasn't interrupted the connection for some reason.</p>
-        </div>
 
 {% endblock %}
 {% block javascript %}
-<script src="/static/jquery-ui/jquery-ui.js"></script>
 <script src="/static/js/odap-instancecontrols.js"></script>
     <script>
     function setLastRefreshedButton(json){
@@ -123,16 +95,6 @@ limitations under the License. -->
     $("nav-sidebar").removeClass("active");
     $("#myinstances").addClass("active");
 
-    function localRefresh(){
-      $("#hiding-box").addClass("loading");
-      $("#circle-rotate").addClass("glyphicon glyphicon-repeat gly-spin-slow gi-5x loading-center");
-      $.ajax({
-          url: "/ajax/user-refresh",
-          type: "GET",
-          dataType: "json",
-          success: location.reload()
-      });
-    }
 
     function setInstanceTable(json)  {
       var tbl = document.getElementById("instances");

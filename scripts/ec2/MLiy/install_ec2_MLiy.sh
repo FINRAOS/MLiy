@@ -51,7 +51,7 @@ EC2AZ=$(curl -s http://169.254.169.254/latest/meta-data/placement/availability-z
 instanceid=$(curl -s 169.254.169.254/latest/meta-data/instance-id)
 export itype=$(curl -s 169.254.169.254/latest/meta-data/instance-type | awk -F. '{print $1}')
 export AWS_DEFAULT_REGION=$(echo "$EC2AZ" | sed -e 's;[^0-9]*$;;')
-stack_name=$(retry aws ec2 describe-instances --instance-ids $instanceid --query 'Reservations[].Instances[].Tags[?Key==`Name`].Value[]' --output text)
+stack_name=$(retry aws ec2 describe-instances --instance-ids $instanceid --query 'Reservations[].Instances[].Tags[?Key==`aws:cloudformation:stack-name`].Value[]' --output text)
 
 /bin/bash -xv /root/bootstrap > /var/log/all/bootstrap.log  2>&1
 
