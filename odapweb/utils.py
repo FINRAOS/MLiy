@@ -67,15 +67,6 @@ def remove_managergroup(groupset):
 	return groupset
 
 
-
-
-
-
-
-
-
-
-
 def findVPCID(purpose):
 	client = boto3.client('ec2')
 

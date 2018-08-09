@@ -46,12 +46,22 @@ def dnsDisplayName(instance_name):
 This method is called when an instance is created to create a dns entry. 
 """
 def createDnsEntry(instance_name, ip):
-
+	try:
+		function = loadFunction("createDnsEntry",DNS_PLUGIN,{})
+		return function(instance_name,ip)
+	except NameError:
+		logger.debug("did not find dns implementation")
+		return ""
 	return 0
 
 """
 This method is called when an instance is destroyed to remove a dns entry. 
 """
 def deleteDnsEntry(instance_name, ip):
-
+	try:
+		function = loadFunction("deleteDnsEntry",DNS_PLUGIN,{})
+		return function(instance_name,ip)
+	except NameError:
+		logger.debug("did not find dns implementation")
+		return ""
 	return 0

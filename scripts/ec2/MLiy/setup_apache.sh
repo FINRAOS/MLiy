@@ -174,7 +174,8 @@ Please use your <mark>Your network credentials</mark> to logon to the following 
 <li><a href="/rstudio/">R Studio Server</a>
 <li><a href="/shiny/">R Shiny Server</a>
 <li><a href="/flow/">H2O Flow</a>
-<li><a href="/tensorboard/">Tensorboard</a>
+<li><a href="/tensorboard/">Tensorboard*</a>
+* Tensorboard will only work with GPU type instances such as g2 and p2
 </ul>
 </p>
 <p>

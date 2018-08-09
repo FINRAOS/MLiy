@@ -78,25 +78,3 @@ function termInst(id) {
     instanceCmd(id, "terminate");
   }
 }
-
-// function to handle appgate warning per ODAP-87
-// no longer used per ODAP-110
-
-function instanceLink(ipaddr) {
-	$( "#dialog-confirm" ).data('ipaddr', ipaddr).dialog({
-	      resizable: false,
-	      height: "auto",
-	      width: 400,
-	      modal: true,
-	      buttons: {
-	        "Connect to Instance": function(ipaddr) {
-            var ip = $(this).data('ipaddr');
-	          location.replace( "https://" + ip + "/" );
-
-	        },
-	        Cancel: function() {
-	          $( this ).dialog( "close" );
-	        }
-	      }
-	    });
-}

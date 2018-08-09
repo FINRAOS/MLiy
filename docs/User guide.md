@@ -23,7 +23,11 @@ Select the EC2 instance type.
 
 <img src="./img/select_new_instance_details.png" width="800" border="10" />
 
+<<<<<<< HEAD
+Click on the “Launch Instance” button. You will see the launch progress bar indicating launch status. Depending on the image, instance launch time will vary.
+=======
 Click on the “Launch Instance” button. You will see the launch progress bar indicating launch status.
+>>>>>>> opensource
 
 <img src="./img/launch_progress_1.png" width="800" border="10" />
 

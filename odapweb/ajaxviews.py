@@ -114,7 +114,7 @@ class BillingJson(JsonView):
 						if len(set(bill.user.groups.filter(name=query_group))) == 0:
 							continue
 
-					hours = 0
+					hours = 1
 
 					if bill.end_time is not None and begin_date > bill.end_time:
 						continue
@@ -131,7 +131,7 @@ class BillingJson(JsonView):
 						end = bill.end_time
 
 					td = end - begin
-					hours = td.days * 24 + td.seconds // 3600
+					hours += td.days * 24 + td.seconds // 3600
 
 					price = bill.price * hours
 
@@ -349,31 +349,15 @@ class InstanceStatesJson(JsonView):
 		cnt_stopped = 0
 		cnt_running = 0
 		cnt_other = 0
-		prev_owner = None
-		skip_owner = False
-		caller_groups = remove_managergroup(set(self.request.user.groups.all()))
 
 		for inst in Instance.objects.all().exclude(userid='').order_by('userid'):
 			# logger.debug('prev owner: %s, inst owner: %s, skip: %s', prev_owner, inst.userid, str(skip_owner))
 			# group lookup for owners is expensive so it's a flag
-			if inst.userid.upper() != self.request.user.username.upper():
-				# users don't need to be in db to see their own instances
-				if skip_owner and prev_owner == inst.userid:
-					continue
-				if prev_owner != inst.userid:
-					# look up new user
-					prev_owner = inst.userid
-					try:
-						iowner = User.objects.get(username=inst.userid.upper())
-						if caller_groups.isdisjoint(set(iowner.groups.all())):
-							skip_owner = True
-							continue
-						else:
-							skip_owner = False
-					except User.DoesNotExist:
-						logger.debug('instance owner %s not in database', inst.owner)
-						skip_owner = True
-						continue
+			user = self.request.user # user accessing functionality
+			owner = inst.userid #instance owner
+
+			if not has_permission(user,owner):
+				continue
 
 			# following conditions are true: caller and owner share a group, and skip is false
 			if inst.state == 'running':
@@ -595,10 +579,14 @@ class changeInstanceState(JsonView):
 				return {'action': 'invalid', 'status': 'failed', 'exception': 'Instance already terminated.'}
 			try:
 				#kill the Cloudformation stack
-				client = boto3.client("cloudformation")
-				client.delete_stack(StackName=inst.stack_id.stack_id)
-				inst.stack_id.delete()
-				botoinstance.terminate()
+				stack = inst.stack_id
+				if(stack != None):
+					client = boto3.client("cloudformation",region_name=AWS_REGION)
+					client.delete_stack(StackName=stack.stack_id)
+					stack.delete()
+				else:
+					botoinstance.terminate()
+				inst.stack_id = None
 				bill = inst.current_bill
 				if bill != None:
 					bill.ongoing = False
@@ -608,6 +596,7 @@ class changeInstanceState(JsonView):
 				inst.state = 'terminating'
 				inst.stop_at = datetime.now(timezone(TIME_ZONE))
 				inst.save()
+				
 			except Exception as e:
 				log.error(e)
 				return {'action': 'invalid', 'status': 'failed', 'exception': str(e)}

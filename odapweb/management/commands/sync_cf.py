@@ -1,15 +1,17 @@
 from django.core.management.base import BaseCommand, CommandError
 import glob
 import os
-from odapweb.settings import DIRECTORY_FILE_LOCATION
+import logging
+from odapweb.settings import DIRECTORY_FILE_LOCATION,S3_FILE_LOCATION
 from odapweb.models import CloudFormation, UserDataScript
-
+from odapweb.s3bucketsync import syncS3
 
 class Command(BaseCommand):
 
 	def handle(self, *args, **options):
 		#grab files from s3 and push into the file structure
-
+		if(len(S3_FILE_LOCATION) > 0):
+			self.pullFromS3()
 		#populate database with CF
 		path = DIRECTORY_FILE_LOCATION
 
@@ -29,7 +31,13 @@ class Command(BaseCommand):
 			cloud_formation.body = content
 			cloud_formation.save()
 	   
-
+	def pullFromS3(self):
+		try:
+			syncS3(S3_FILE_LOCATION,DIRECTORY_FILE_LOCATION)
+		except Exception as e:
+			logger = logging.getLogger("botolog")
+			logger.error("Could not connect to bucket: " + S3_FILE_LOCATION)
+			logger.exception(e)
 
 def extractName(filename):
 	output = os.path.basename(filename)

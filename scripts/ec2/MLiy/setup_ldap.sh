@@ -133,6 +133,42 @@ groupadd nslcd
 useradd -M -s /sbin/nologin -g nslcd nslcd
 echo "service nslcd start" >> /etc/rc.d/rc.local
 
+if [[ $LDAP_TYPE == openLDAP ]] ; then
+
+NSLCD_CONFIG=$(cat <<END_HEREDOC
+filter passwd (&(objectClass=person)(memberOf=${LDAP_AUTHZ_GROUP}))
+filter shadow (&(objectClass=person)(memberOf=${LDAP_AUTHZ_GROUP}))
+filter group  (objectClass=groupOfNames)
+END_HEREDOC
+)
+
+PAM_CONFIG=$(cat <<END_HEREDOC
+pam_login_attribute uid
+pam_filter objectClass=person
+END_HEREDOC
+)
+
+else # AD is default
+
+NSLCD_CONFIG=$(cat <<END_HEREDOC
+filter passwd (&(objectClass=user)(memberOf=${LDAP_AUTHZ_GROUP}))
+map    passwd uid              sAMAccountName 
+map    passwd uidNumber        objectSid:S-1-5-21-2609389297-2041493788-1438465508
+filter shadow (&(objectClass=user)(memberOf=${LDAP_AUTHZ_GROUP}))
+map    shadow uid              sAMAccountName 
+map    shadow shadowLastChange pwdLastSet
+filter group  (objectClass=group)
+END_HEREDOC
+) 
+
+PAM_CONFIG=$(cat <<END_HEREDOC
+pam_login_attribute sAMAccountName
+pam_filter objectClass=user
+END_HEREDOC
+)
+ 
+fi
+
 cat > /etc/nslcd.conf <<EOF
 uid nslcd
 gid nslcd
@@ -151,17 +187,12 @@ timelimit 30
 scope sub
 referrals no
 
-filter passwd (&(objectClass=user)(memberOf=${LDAP_AUTHZ_GROUP}))
-map    passwd uid              sAMAccountName 
 map    passwd gecos            displayName
 map    passwd loginShell       "/bin/bash"
 map    passwd homeDirectory    "/ext/home/analyst"
-map    passwd uidNumber        objectSid:S-1-5-21-2609389297-2041493788-1438465508
 map    passwd gidNumber        "10001"
-filter shadow (&(objectClass=user)(memberOf=${LDAP_AUTHZ_GROUP}))
-map    shadow uid              sAMAccountName 
-map    shadow shadowLastChange pwdLastSet
-filter group  (objectClass=group)
+
+${NSLCD_CONFIG}
 EOF
 
 cat > /etc/pam_ldap.conf <<EOF
@@ -177,8 +208,7 @@ bind_timelimit 30
 bind_timelimit30
 scope sub
 referrals no
-pam_login_attribute sAMAccountName
-pam_filter objectClass=user
+${PAM_CONFIG}
 EOF
 
 cat > /etc/nsswitch.conf <<EOF
@@ -239,6 +269,9 @@ cd ~analyst
 #Setup mod_authnz_pam package
 cd mod_authnz_pam-1.0.2
 apxs -i -a -c mod_authnz_pam.c -lpam -Wall -pedantic >/dev/null
+
+# Allow password based login via ssh
+perl -pi -e  's/^PasswordAuthentication.*$/PasswordAuthentication yes/' /etc/ssh/sshd_config
 
 cd ~analyst
 rm -rf nss-pam-ldapd-0.9.7 mod_authnz_pam-1.0.2

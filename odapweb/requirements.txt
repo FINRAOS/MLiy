@@ -1,6 +1,6 @@
 boto3==1.4.0
 botocore==1.4.46
-Django==1.10
+Django==1.11.14
 django-ipware==1.1.6
 docutils==0.12
 futures==2.2.0

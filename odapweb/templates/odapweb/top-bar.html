@@ -25,7 +25,6 @@ limitations under the License. -->
         <div id="navbar" class="navbar-collapse collapse">
           <ul class="nav navbar-nav navbar-right">
           {% if user.is_authenticated %}
-            <li><a class="navbar-link" href="#">Settings</a></li>
             <li><a class="navbar-link" href="{% url 'userprofile' %}">Profile</a></li>
           {% else %}
             <li><a class="navbar-link" href="/admin/">(Local Mode) Log in to My Dashboard</a></li>

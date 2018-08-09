@@ -74,7 +74,7 @@ SECRET_KEY = '{{{django_secret_key}}}'
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['{{{hostname}}}']
 
 # Application definition
 
@@ -243,7 +243,5 @@ LOGGING = {
 
 
 REPLACEMENT_TOKENS = [
-	('bucket', '{{{staging_bucket}}}'),
-	('odapmgr_url', '{{{odapmgr_location}}}'),
-	('LDAP_USER', '{{{ldap_user}}}'),
+
 ]

@@ -43,6 +43,7 @@ limitations under the License. -->
               <span class="text-muted">Ideas what to put here? Let me know!</span>
             </div> -->
           </div>
+          <div id="last-refresh" class="mx-auto pull-right refresh-button"><span class="glyphicon glyphicon-refresh"></span> <span id="last-refresh-text" class="refresh-button-text">Refresh Status</span></div>
           {% if ec2access %}
             <h2 class="sub-header" id="instlist">All Instances</h2>
             
@@ -76,11 +77,35 @@ limitations under the License. -->
             {% endif %}
             
           </div>
-          <p class="text-muted"><small>(Current as of {{ cachetime }}, data will be refreshed if stale)</small></p>
+
         </div>
 
 {% endblock %}
 {% block javascript %}
+    <script>
+    function setLastRefreshedButton(json){
+      var refreshStr = "Not Updated";
+      var date = new Date(Date.parse(json.last_update));
+      if(date != null){
+        var currentDate = new Date();
+        //if date is today, print time
+        if(date.getFullYear() === currentDate.getFullYear() && date.getMonth() === currentDate.getMonth() && date.getDate() === currentDate.getDate()){
+          refreshStr = "Correct as of Today at " + date.toLocaleTimeString();
+        }
+        //else print date
+        else{
+          refreshStr = "Correct as of " + date.toLocaleDateString();
+        }
+      }
+      $("#last-refresh-text")[0].innerText = refreshStr;
+    }
+    $.ajax({
+      url: "/ajax/update-last-refresh",
+      type: "GET",
+      dataType: "json",
+      success: setLastRefreshedButton
+    });
+    </script>
     <script>
     $("#teaminstances").addClass("active");
 

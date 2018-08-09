@@ -15,9 +15,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Change to Analyst home directory to install/configure 
-cd ~analyst
-
 groupadd -g 10001 analyst
 useradd -d /ext/home/analyst -m -k /etc/skel -g analyst analyst
 chmod 770 /ext/home/analyst
@@ -51,7 +48,9 @@ git config --global url."https://".insteadOf git://
 git clone https://github.com/facebook/iTorch.git >/dev/null 
 cd ~/iTorch
 source ~/torch/bin/torch-activate
+source ~/jupyter/py2_kernel/bin/activate
 luarocks make >/dev/null 
+deactivate
 cd ~analyst
 rm -rf iTorch
 

@@ -13,7 +13,6 @@ See the License for the specific language governing permissions and
 limitations under the License. -->
 {% extends 'odapweb/base-template.html' %}
 {% block extra-css %}
-<link rel="stylesheet" href="/static/jquery-ui/jquery-ui.min.css">
 {% endblock %}
 {% block content-main %}
         <div class="col-sm-9 col-sm-offset-3 col-md-10 col-md-offset-2 main">
@@ -117,14 +116,9 @@ limitations under the License. -->
           <!-- Don't comment the below out -->
           <div id='warning-box' class="alert alert-warning" role="alert" hidden="true">No warning!</div>
         </div>
-        <div id="dialog-confirm" title="Are you running AppGate?" hidden="true">
-          <p><span class="ui-icon ui-icon-alert" style="float:left; margin:12px 12px 20px 0;"></span>In order to connect to the instance you need to make sure AppGate is running, that you're logged into, and
-          that it hasn't interrupted the connection for some reason.</p>
-        </div>
 
 {% endblock %}
 
 {% block javascript %}
-<script src="/static/jquery-ui/jquery-ui.js"></script>
 <script src="/static/js/odap-instancecontrols.js"></script>
 {% endblock %} 

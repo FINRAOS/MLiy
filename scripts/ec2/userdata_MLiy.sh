@@ -33,6 +33,7 @@ export CRAN_REPO='{{{CRAN_REPO}}}'
 export PyPi_REPO='{{{PyPi_REPO}}}'
 
 # LDAP Settings
+export LDAP_TYPE='{{{LDAP_TYPE}}}' # Possible Values: AD or openLDAP
 export LDAP_HOST_NAME='{{{LDAP_HOST_NAME}}}'
 export LDAP_USER_ID='{{{LDAP_USER_ID}}}'
 # Command to execute in order to obtain password for LDAP_USER_ID. This could be opensource credstash, AWS secret manager or just simple echo password
