@@ -15,13 +15,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-mkdir -p ../odap-python
+mkdir -p ../mliy-python
 if [ ! -d ../dist ] 
 then
 	mkdir ../dist
 fi
 
-tar --exclude='../dist' -zcvf ../dist/odapweb.tar.gz ../*
+tar --exclude='../dist' -zcvf ../dist/mliyweb.tar.gz ../*
 
 ls -l ../dist/*.gz
 

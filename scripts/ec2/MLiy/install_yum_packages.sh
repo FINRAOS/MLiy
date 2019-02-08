@@ -25,5 +25,9 @@ pango-devel openmpi-devel libXt-devel git libgfortran readline cairo pango jpeg-
 atlas-sse3 libgomp python27-PyGreSQL python27-psycopg2 MySQL-python27 libxml2 libxml2-python27 poppler-glib openmpi tcl \
 httpd24 mod24_ssl gcc-gfortran java-1.8.0-openjdk java-1.8.0-openjdk-devel java-1.8.0-openjdk-headless openldap-clients openldap-devel \
 pam-devel httpd24-devel python34 python34-devel python34-libs python34-setuptools graphviz jq \
-bzip2-devel.x86_64 pcre-devel.x86_64 screen aws-cfn-bootstrap sqlite-devel gdbm-devel libpcap-devel valgrind-devel 
+bzip2-devel.x86_64 pcre-devel.x86_64 screen aws-cfn-bootstrap sqlite-devel gdbm-devel libpcap-devel valgrind-devel
 
+# pip install doesn't work without the following work around
+
+retry yum remove -y -q python27-pip
+retry yum install -y -q python27-pip

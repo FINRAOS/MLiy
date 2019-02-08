@@ -51,7 +51,7 @@ Keras==2.1.6
 Lasagne
 Markdown
 MarkupSafe
-matplotlib
+matplotlib==1.4.3
 minepy
 mistune
 mock
@@ -89,7 +89,7 @@ qtconsole
 requests
 scikit-learn
 scipy
-seaborn
+seaborn==0.7.1
 simplegeneric
 singledispatch
 six

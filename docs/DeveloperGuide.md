@@ -2,6 +2,16 @@
 
 This guide will talk about the arctitecture of the MLiy website, the plugin system and how to easily extend it.
 
+[Architecture](#architecture)
+
+[Plugin Architecture](#plugin-architecture)
+
+[Extending MLiy](#extending-mliy)
+
+[Simple Instance Pricing Module](#simple-instance-pricing-module)
+
+[Refreshing the Data](#refreshing-the-data)
+
 ## Architecture
 
 The website has a database that keeps track of the AWS State and is periodically updated to keep track of the AWS State. This is done to limit calls to AWS and avoid throttling on their side. The website launches instances and volumes through a cloudformation template with a user data script and parameters set by a software configuration. The website can then manage the instances to stop and start them. When necessary, the website can issue stack_delete and termination commands.
@@ -65,7 +75,7 @@ URL Parameters:
  - terminate - permanently terminates an instance and deletes the start
 
 
-#### Curl update structure
+#### Curl Update Structure
 
 After an instance comes up, it might take a long time for the user data script to run. In this case the instance can reach out to the website and update a progress bar on its launch time. The call comes in by hitting this URL:
 
@@ -90,6 +100,8 @@ DNS_PLUGIN="plugin"
 
 AUTH_PLUGIN="ldapplugin"
 ```
+
+Plugins have their own file for storing global variables. This can be done in the ./plugin/plugin_settings.py file and referenced as an import.
 
 ### Endpoints:
 
@@ -122,7 +134,7 @@ These are the functions that need to be implemented:
 
 #### DNS Plugin
 
-The DNS plugin allows a potential user to specify actions to create and tear down DNS. This is so that the address of users 
+The DNS plugin allows a potential user to specify actions to create and tear down DNS. This is so that the address of the instances can be reached by DNS rather than their IP addresses. A sample DNS plugin using AWS Route 53 has been included.
 
 These are the functions that need to be implemented:
 
@@ -148,29 +160,51 @@ def deleteDnsEntry(instance_name, ip):
 	return requests_result
 ```
 
+## Logging
+
+Logging is done through Django. MLiy logs authentication, boto API calls, the web application itself, and the launches of the instances it spins up (but not what goes on in those instances). These are stored in auth.log, boto.log, mliyweb.log, and mliylaunch.log respectively. These can be viewed in the MLiy Web EC2 instance. They are located in /home/mliyapp/logs.
+
+By default, logs are configured to only store ERROR level messages. To configure this to INFO, DEBUG, etc., they can be set in the mliyweb/settings.py file. For the settings to take effect, the server must be restarted.
+
+settings.py
+
+```
+DJANGO_LOG_LOWLEVEL='ERROR'
+
+LOG_LOCATION="/home/mliyapp/logs"
+
+LAUNCH_LOG_LEVEL='ERROR'
+```
+
+Restarting the Apache server
+
+```
+apachectl stop
+apachectl start
+```
+
 ## Extending MLiy
 
 ### Code conventions
-
-####Python code
 
 The code must comply with PEP-8 conventions which can be found below with a preference for tabs over spaces to keep consistent with the rest of the code.
 
 [https://www.python.org/dev/peps/pep-0008/]
 
-# Simple Instance Pricing Module
+## Simple Instance Pricing Module
 
-Basically the code rips through the pricing json, on demand, whenever it is queried. Caching
+The code rips through the pricing json, on demand, whenever it is queried. Caching
 is handled by the host OS; it's unlikely that an active caching strategy will be worth the
-work during the current workload the system hosting this experiences.
+work due to the current workload the hosting system experiences.
 
 This implementation precedes the AWS pricing service, and depends on a simpler data source, 
 
 ## Refreshing the Data
 
-This is super-simple, we use the format from www.ec2instances.info:
+MLiy uses data and format from www.ec2instances.info:
 
 	curl http://www.ec2instances.info/instances.json > instances.json
 
-Replace the instances.json file in the instances directory, and it all should work, unless the format has changed.
+Replace the instances.json file in [mliyweb/fixtures]. This should work unless the format has changed.
 
+[mliyweb/fixtures]:../mliyweb/fixtures

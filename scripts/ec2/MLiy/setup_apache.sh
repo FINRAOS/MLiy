@@ -36,7 +36,7 @@ else
 fi
 
 
-cat > /etc/httpd/conf.d/odapserver.conf <<EOF
+cat > /etc/httpd/conf.d/mliyserver.conf <<EOF
 ServerSignature Off
 ServerTokens Prod
 Header always set Strict-Transport-Security "max-age=63072000; includeSubdomains;"

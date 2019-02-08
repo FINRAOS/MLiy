@@ -15,9 +15,8 @@
 # limitations under the License.
 
 # Setup proxy if needed
-if [[ -f ../../proxy.sh ]]; then 
-  source ../../proxy.sh
-  cp ../../proxy.sh ~analyst
+if [[ ! -z "$PROXY_SCRIPT" && -f $PROXY_SCRIPT ]]; then
+  source $PROXY_SCRIPT
 fi
 
 # Change to Analyst home directory to install/configure 

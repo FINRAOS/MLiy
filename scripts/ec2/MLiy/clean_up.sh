@@ -18,8 +18,7 @@
 # Change to Analyst home directory to un-install
 cd ~analyst
 
-
-rm -f proxy.sh 
+# Remove any scripts here.
 
 
 cd $SCRIPT_DIR

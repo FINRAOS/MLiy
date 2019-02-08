@@ -32,7 +32,7 @@ futures
 gensim
 gevent
 greenlet
-h5py==2.8.0rc1
+h5py==2.9.0
 html5lib==0.9999999
 ipdb
 ipykernel
@@ -53,7 +53,7 @@ Keras==2.1.6
 Lasagne
 Markdown
 MarkupSafe
-matplotlib
+matplotlib==1.4.3
 minepy
 mistune
 mock
@@ -67,12 +67,12 @@ notebook
 numpy
 odo
 openpyxl
-pandas
+pandas==0.19
 pathlib2
 patsy
 pbr
 pexpect
-pg8000
+pg8000==1.10.6
 pickleshare
 prompt-toolkit
 protobuf

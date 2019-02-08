@@ -1,7 +1,17 @@
 {
   "AWSTemplateFormatVersion": "2010-09-09",
-  "Description" : "AWS Cloudformation Template for MLiy.\nCopyright 2017 MLiy Contributors\nLicensed under the Apache License, Version 2.0 (the \"License\");\nyou may not use this file except in compliance with the License.\nYou may obtain a copy of the License at\nhttp://www.apache.org/licenses/LICENSE-2.0\nUnless required by applicable law or agreed to in writing, software\ndistributed under the License is distributed on an \"AS IS\" BASIS,\nWITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.\nSee the License for the specific language governing permissions and\nlimitations under the License.",
+  "Description": "AWS Cloudformation Template for MLiy.\nCopyright 2017 MLiy Contributors\nLicensed under the Apache License, Version 2.0 (the \"License\");\nyou may not use this file except in compliance with the License.\nYou may obtain a copy of the License at\nhttp://www.apache.org/licenses/LICENSE-2.0\nUnless required by applicable law or agreed to in writing, software\ndistributed under the License is distributed on an \"AS IS\" BASIS,\nWITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.\nSee the License for the specific language governing permissions and\nlimitations under the License.",
   "Parameters": {
+    "DnsService": {
+      "Description": "DNS service to use for MLiy-launched instances.",
+      "Type": "String",
+      "Default": "aws"
+    },
+    "DomainName": {
+      "Description": "Domain name to use for the MLiy web app",
+      "Type": "String",
+      "Default": "mliy"
+    },
     "KeyName": {
       "Description": "The SSH key pair to use",
       "Type": "String"
@@ -28,12 +38,12 @@
       "Type": "String"
     },
     "SourcePackage": {
-      "Default" : "odapweb.tar.gz",
+      "Default": "mliyweb.tar.gz",
       "Description": "The name of the installation package",
       "Type": "String"
     },
     "SourceScript": {
-      "Default" : "install.sh",
+      "Default": "install.sh",
       "Description": "The name of the installation script",
       "Type": "String"
     },
@@ -131,7 +141,7 @@
       "Type": "String",
       "Default": "PT5M"
     },
-    "OdapMgrHostname": {
+    "ManagerHostname": {
       "Description": "The Fully Qualified Hostname of MLiy Website application",
       "Type": "String"
     },
@@ -160,6 +170,16 @@
       "Description": "Authorize member of this group to access",
       "Type": "String",
       "Default": ""
+    },
+    "Route53HostedZoneName": {
+      "Description": "Required for Route 53. Hosted zone name for the MLiy web application: mliy.web.",
+      "Type": "String",
+      "Default": ""
+    },
+    "Route53AppDns": {
+      "Description": "Subdomain for the MLiy web app: mysubdomain -> mysubdomain.mliy.web.",
+      "Type": "String",
+      "Default": ""
     }
   },
   "Conditions": {
@@ -171,6 +191,18 @@
               "Ref": "elbName"
             },
             "NOT_SET"
+          ]
+        }
+      ]
+    },
+    "CreateRoute53": {
+      "Fn::Not": [
+        {
+          "Fn::Equals": [
+            {
+              "Ref": "Route53AppDns"
+            },
+            ""
           ]
         }
       ]
@@ -201,14 +233,24 @@
               "",
               [
                 "#!/bin/bash -xv\n",
+                "export DNS_SERVICE=",
+                {
+                  "Ref": "DnsService"
+                },
+                "\n",
+                "export DOMAIN_NAME=",
+                {
+                  "Ref": "DomainName"
+                },
+                "\n",
                 "export SOURCE_BUCKET=",
                 {
                   "Ref": "SourceBucket"
                 },
                 "\n",
-                "export ODAPMGR_HOSTNAME=",
+                "export MANAGER_HOSTNAME=",
                 {
-                  "Ref": "OdapMgrHostname"
+                  "Ref": "ManagerHostname"
                 },
                 "\n",
                 "export DJANGO_SECRET_KEY=",
@@ -247,14 +289,21 @@
                 },
                 "\n",
                 "yum install -y aws-cfn-bootstrap\n",
-                "useradd odapapp\n",
-                "export INSTALL_BASE=~odapapp;cd $INSTALL_BASE\n",
-                "mkdir odapweb logs;cd odapweb\n",
+                "useradd mliyapp\n",
+                "export INSTALL_BASE=~mliyapp;cd $INSTALL_BASE\n",
+                "mkdir mliyweb logs;cd mliyweb\n",
                 "aws s3 cp s3://$SOURCE_BUCKET/$SOURCE_PACKAGE .; tar xzf $SOURCE_PACKAGE; rm -rf $SOURCE_PACKAGE\n",
                 "bash scripts/$SOURCE_SCRIPT\n",
-                "/opt/aws/bin/cfn-signal -e $? --stack ", { "Ref": "AWS::StackName" },
+                "/opt/aws/bin/cfn-signal -e $? --stack ",
+                {
+                  "Ref": "AWS::StackName"
+                },
                 " --resource AutoScalingGroup ",
-                " --region ", { "Ref" : "AWS::Region" }, "\n"
+                " --region ",
+                {
+                  "Ref": "AWS::Region"
+                },
+                "\n"
               ]
             ]
           }
@@ -377,6 +426,46 @@
           }
         ]
       }
+    },
+    "DNS": {
+      "Condition": "CreateRoute53",
+      "Type": "AWS::Route53::RecordSetGroup",
+      "DependsOn": "ElasticLoadBalancer",
+      "Properties": {
+        "HostedZoneName": {
+          "Ref": "Route53HostedZoneName"
+        },
+        "RecordSets": [
+          {
+            "Name": {
+              "Fn::Join": [
+                "",
+                [
+                  {
+                    "Ref": "Route53AppDns"
+                  },
+                  "."
+                ]
+              ]
+            },
+            "Type": "A",
+            "AliasTarget": {
+              "HostedZoneId": {
+                "Fn::GetAtt": [
+                  "ElasticLoadBalancer",
+                  "CanonicalHostedZoneNameID"
+                ]
+              },
+              "DNSName": {
+                "Fn::GetAtt": [
+                  "ElasticLoadBalancer",
+                  "DNSName"
+                ]
+              }
+            }
+          }
+        ]
+      }
     }
   },
   "Outputs": {
@@ -397,7 +486,7 @@
       "Value": {
         "Ref": "ElasticLoadBalancer"
       },
-      "Condition" : "CreateELB"
+      "Condition": "CreateELB"
     }
   }
 }

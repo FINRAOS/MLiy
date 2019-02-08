@@ -26,5 +26,18 @@ LDAP_AUTHENTICATION_URL='ldaps://LDAP_SERVER_FQDN:636/OU_to_Search_for_Users?sAM
 LDAP_BIND_USER_DN='User Distinguish Name to use to connect to LDAP Server'
 LDAP_BIND_USER_PASSWD="$(Command to run to obtain the password for above user)"
 LDAP_GROUP_ATTRIBUTE='Distinguish Name of the Group used for authorization during authentication'
-S3_SOURCE_BUCKET='Name of the bucket and prefix contaning source package odapweb.tar.gz; DO NOT start with s3//;'
+S3_SOURCE_BUCKET='Name of the bucket and prefix contaning source package mliyweb.tar.gz; DO NOT start with s3//;'
 TAGS="List of Key, Value pairs to tag reqources with"
+
+# Optional
+ELB_NAME='Your elastic Elastic Load Balancer name'
+ELB_SUBNETS="Comma separated list of subnets"
+ELB_SECURITY_GROUPS="Comma separated list of security groups"
+ELB_SSL_CERTIFICATE_ARN="ARN of the SSL certificate on AWS"
+ELB_HEALTH_URL="URL for checking the health of the application for Load Balancing"
+DNS_SERVICE="DNS service to use for registering the site with a DNS (default aws)"
+DOMAIN_NAME="Domain name for the MLiy web app"
+APP_DNS="DNS entry for the MLiy web app: mydns -> mydns.my.hosted.zone.com."
+HOSTED_ZONE_NAME="Required for Route 53. Hosted zone name for the MLiy web application: my.hosted.zone.com"
+
+

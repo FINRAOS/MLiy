@@ -1,10 +1,5 @@
 """
-Utility functions like instance management threads that dont make sense anywhere else.
-
-They certainly dont belong in views.
-"""
-'''
-Copyright 2017 ODAP Contributors
+Copyright 2017 MLiy Contributors
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -18,15 +13,18 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 
-'''
-from odapweb.settings import DNS_DATA, DNS_API_URL, DNS_ODAP_URL
-from odapweb.models import Key
+"""
+
+from .plugin_settings import DNS_DATA, DNS_API_URL, DNS_MLIY_URL
+from mliyweb.models import Key
 import requests
 
 
 """
-DNS implementation varies by a large margin between users. When correctly implemented, the api will create readable DNS names and remove HTTPS warnings from ec2 instance home pages
+DNS implementation varies by a large margin between users. When correctly implemented, this will remove HTTPS warnings from ec2 instance home pages.
 
+This is a sample plugin that assumes that there is an existing DNS API. For a more generic implementation, Route53 
+could also be used.
 """
 
 
@@ -35,19 +33,19 @@ This is the dns url that is displayed on the website and also
 
 Changing it from the default implementation will enable the DNS module
 """
-def dnsDisplayName(instance_name):
-	return "instance"+str(instance_name)
+def dnsDisplayName(instance_name, ip):
+	return str(instance_name+DNS_MLIY_URL)
 
 """
 This method is called when an instance is created to create a dns entry. 
 """
 def createDnsEntry(instance_name, ip):
-	dns_api_url = DNS_API_URL + instance_name + DNS_ODAP_URL
+	dns_api_url = DNS_API_URL + instance_name + DNS_MLIY_URL
 
 	# Get the key from our database
 
 	key = Key.objects.get(
-		title="ODAP-DNS-API-KEY").key_text  # "kyWsnkaxUGKAtnIQkFW7XdCO0SGf9IS1NCRdSAK9o4SzLm4_1fIEY8Av5ZtMNJ1I"
+		title="MLIY-DNS-API-KEY").key_text
 
 	data = DNS_DATA
 
@@ -61,12 +59,12 @@ def createDnsEntry(instance_name, ip):
 This method is called when an instance is destroyed to remove a dns entry. 
 """
 def deleteDnsEntry(instance_name, ip):
-	dns_api_url = DNS_API_URL + instance_name + DNS_ODAP_URL
+	dns_api_url = DNS_API_URL + instance_name + DNS_MLIY_URL
 
 	# Get the key from our database
 
 	key = Key.objects.get(
-		title="ODAP-DNS-API-KEY").key_text  # "kyWsnkaxUGKAtnIQkFW7XdCO0SGf9IS1NCRdSAK9o4SzLm4_1fIEY8Av5ZtMNJ1I"
+		title="MLIY-DNS-API-KEY").key_text
 
 	data = DNS_DATA
 
