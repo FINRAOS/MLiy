@@ -1,4 +1,6 @@
-# MLiy Documentation
- - [Getting Started](./Getting%20Started.md)
- - [Administrator Guide](./Administrator%20Guide.md)
- - [User Guide](./User%20guide.md) 
+## MLiy Documentation
+- [Administrator Guide](./AdministratorGuide.md)
+- [User Guide](./UserGuide.md)
+- [Developer Guide](./DeveloperGuide.md)
+- [MLiy Open LDAP Guide](./SupportForOpenLdap.md)
+- [MLiy Image Guide](./MLiyImageGuide.md)

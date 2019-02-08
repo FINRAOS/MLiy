@@ -41,6 +41,7 @@ export LD_LIBRARY_PATH=/usr/local/cuda/lib64:/usr/local/cuda/extras/CUPTI/lib64:
 ' >> ~analyst/.bashrc_mine
 fi
 
-echo 'if [ -f ~/.bashrc_mine ]; then
+echo '
+if [ -f ~/.bashrc_mine ]; then
 	. ~/.bashrc_mine
 fi' | tee -a ~analyst/.bash_profile ~analyst/.bashrc

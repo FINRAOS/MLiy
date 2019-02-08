@@ -19,12 +19,17 @@ groupadd -g 10001 analyst
 useradd -d /ext/home/analyst -m -k /etc/skel -g analyst analyst
 chmod 770 /ext/home/analyst
 
+if [[ ! -z "$PROXY_SCRIPT" && -f $PROXY_SCRIPT ]]; then
+  cp $PROXY_SCRIPT ~analyst
+fi
+
 # Stuff to run as analyst
 cat > ~analyst/setup.sh <<EOF
 # Setup proxy
-if [[ -f ~/proxy.sh ]]; then 
-  source ~/proxy.sh
+if [[ ! -z "$PROXY_SCRIPT" && -f $PROXY_SCRIPT ]]; then
+  source $PROXY_SCRIPT
 fi
+
 # Setup iPython Kernels
 python -m virtualenv -p python2 ~/jupyter/py2_kernel
 source ~/jupyter/py2_kernel/bin/activate
@@ -92,7 +97,7 @@ mkdir -p /ext/home/analyst/tensorboard
 nohup tensorboard --logdir=/ext/home/analyst/tensorboard > /ext/home/analyst/tensorboard.out 2>&1 &
 nohup chmod 775 -R ~analyst 2> /dev/null & 
 instanceid=$(curl -s 169.254.169.254/latest/meta-data/instance-id)
-curl -k "${odapmgr_url}/${instanceid}/done(100)"
+curl -k "${mliymgr_url}/ajax/progress/${instanceid}/done(100)"
 EOF
 
 echo "su - analyst -c /ext/home/analyst/startup.sh" >> /etc/rc.d/rc.local

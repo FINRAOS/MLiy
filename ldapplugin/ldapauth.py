@@ -2,7 +2,7 @@
 Custom auth backend for ldap
 """
 '''
-Copyright 2017 ODAP Contributors
+Copyright 2017 MLiy Contributors
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -18,7 +18,7 @@ limitations under the License.
 
 '''
 
-from odapweb.models import GroupConfig
+from mliyweb.models import GroupConfig
 from django.contrib.auth.models import User, Group
 import logging
 
@@ -38,6 +38,13 @@ def processAuthUserInfo(user,request):
 
 		if 'AUTHENTICATE_MAIL' in request.META:
 			user.email = request.META['AUTHENTICATE_MAIL']
+
+	# This can be extended to allow various permissions using LDAP.
+	# The one below gives admin rights.
+	if 'AUTHORIZE_MEMBEROF' in request.META \
+		and 'CN=COMMON_NAME,OU=ORG_UNIT' in request.META['AUTHORIZE_MEMBEROF']:
+		user.is_staff = True
+		user.is_superuser = True
 
 	return user
 
@@ -89,7 +96,6 @@ def parseADHeader(header):
 			if('CN' in kwv[0]):
 				adheaders.add(kwv[1])
 	return adheaders
-
 
 
 def cleanAuthUsername(username):

@@ -15,6 +15,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+if [[ ! -z "$PROXY_SCRIPT" && -f $PROXY_SCRIPT ]]; then
+  source $PROXY_SCRIPT
+fi
 
 # Change to Analyst home directory to install/configure 
 cd ~analyst
@@ -24,7 +27,7 @@ bash install-deps > /dev/null
 PREFIX=~analyst/torch ./install.sh -b > /dev/null
 
 echo '
-if [[ -f ~/proxy.sh ]]; then 
+if [[ -f ~/proxy.sh ]]; then
   source ~/proxy.sh
 fi
 source ~/torch/bin/torch-activate

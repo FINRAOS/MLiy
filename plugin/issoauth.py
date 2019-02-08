@@ -2,7 +2,7 @@
 Custom auth backend for isso 
 """
 '''
-Copyright 2017 ODAP Contributors
+Copyright 2017 MLiy Contributors
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -18,7 +18,7 @@ limitations under the License.
 
 '''
 
-from odapweb.models import GroupConfig
+from mliyweb.models import GroupConfig
 from django.contrib.auth.models import User, Group
 import logging
 

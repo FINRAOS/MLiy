@@ -28,6 +28,8 @@ Adminsitrators define one or more sets of software that are used by end users. M
 - On-demand cost and usage reports
 
 ## MLiy Documentation
-- [Administrator Guide](./docs/Administrator%20Guide.md)
-- [User Guide](./docs/User%20guide.md)
+- [Administrator Guide](./docs/AdministratorGuide.md)
+- [User Guide](./docs/UserGuide.md)
 - [Developer Guide](./docs/DeveloperGuide.md)
+- [MLiy Open LDAP Guide](./docs/SupportForOpenLdap.md)
+- [MLiy Image Guide](./docs/MLiyImageGuide.md)

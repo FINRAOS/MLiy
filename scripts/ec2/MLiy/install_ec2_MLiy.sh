@@ -21,7 +21,7 @@ export PS4='+(${BASH_SOURCE}:${LINENO}): ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
 
 # BEGIN Global Variables
 export SDLC='DEV'
-[[ ! -z "${ODAPMGR_HOSTNAME}" ]] && odapmgr_url="https://${ODAPMGR_HOSTNAME}"
+[[ ! -z "${MANAGER_HOSTNAME}" ]] && mliymgr_url="https://${MANAGER_HOSTNAME}"
 
 # END Global Variables
 
@@ -63,14 +63,14 @@ export TZ="${TIME_ZONE}"
 EOF
 
 
-[[ ! -z "$odapmgr_url" ]] && curl -k "${odapmgr_url}/${instanceid}/mounting_ebs_filesystem(10)"
+[[ ! -z "$mliymgr_url" ]] && curl -k "${mliymgr_url}/ajax/progress/${instanceid}/mounting_ebs_filesystem(10)"
 
 source ./setup_ebs_volume.sh
 
-[[ ! -z "$odapmgr_url" ]] && curl -k "${odapmgr_url}/${instanceid}/creating_analyst_user(20)"
+[[ ! -z "$mliymgr_url" ]] && curl -k "${mliymgr_url}/ajax/progress/${instanceid}/creating_analyst_user(20)"
 source ./setup_analyst.sh
 
-[[ ! -z "$odapmgr_url" ]] && curl -k "${odapmgr_url}/${instanceid}/installing_system_software(40)"
+[[ ! -z "$mliymgr_url" ]] && curl -k "${mliymgr_url}/ajax/progress/${instanceid}/installing_system_software(40)"
 
 source ./install_yum_packages.sh
 
@@ -87,16 +87,16 @@ echo `echo 0 | alternatives --config gfortran 2>/dev/null | grep 'gfortran48' | 
 cat /tmp/no_of_gfortran_versions.txt | alternatives --config gfortran
 
 # Copy base packages from S3
-[[ ! -z "$odapmgr_url" ]] && curl -k "${odapmgr_url}/${instanceid}/downloading_packages(50)"
-# Change to Analyst home directory to install/configure 
+[[ ! -z "$mliymgr_url" ]] && curl -k "${mliymgr_url}/ajax/progress/${instanceid}/downloading_packages(50)"
+# Change to Analyst home directory to install/configure
 cd ~analyst
 packages=s3://$SOURCE_BUCKET
 retry aws s3 sync $packages . --exclude $SOURCE_PACKAGE --quiet
 cd $SCRIPT_DIR
 
-[[ ! -z "$odapmgr_url" ]] && curl -k "${odapmgr_url}/${instanceid}/installing_base_packages(60)"
+[[ ! -z "$mliymgr_url" ]] && curl -k "${mliymgr_url}/ajax/progress/${instanceid}/installing_base_packages(60)"
 
-# Setup Python 
+# Setup Python
 [[ ! -z "$PyPi_REPO" ]] && source ./setup_pip.sh
 ln -s /usr/bin/python2.7 /usr/bin/python2
 pip install --upgrade awscli
@@ -109,11 +109,11 @@ bash ./install_packages.sh
 [[ ! -z "$CRAN_REPO" ]] && source ./setup_cran.sh
 bash ./install_R.sh
 
-[[ ! -z "$odapmgr_url" ]] && curl -k "${odapmgr_url}/${instanceid}/configuring_base_packages(70)"
-[[ ! -z "$LDAP_HOST_NAME" ]] && source ./setup_ldap.sh 
+[[ ! -z "$mliymgr_url" ]] && curl -k "${mliymgr_url}/ajax/progress/${instanceid}/configuring_base_packages(70)"
+[[ ! -z "$LDAP_HOST_NAME" ]] && source ./setup_ldap.sh
 source ./setup_rstudio.sh
 source ./setup_rshiny.sh
-source ./setup_torch.sh
+bash ./setup_torch.sh
 source ./setup_apache.sh
 [[ ! -z "$CUSTOM_ROOT_CERTS" ]] && source ./setup_root_certs.sh
 source ./setup_aws.sh
@@ -122,7 +122,7 @@ source ./setup_odbc.sh
 
 if [[ $itype == g2 || $itype == p2 ]] ; then
 
-[[ ! -z "$odapmgr_url" ]] && curl -k "${odapmgr_url}/${instanceid}/installing_gpu_packages(80)"
+[[ ! -z "$mliymgr_url" ]] && curl -k "${mliymgr_url}/ajax/progress/${instanceid}/installing_gpu_packages(80)"
 source ./install_nvidia.sh
 
 # Set Default GCC to version 4.8
@@ -139,7 +139,7 @@ fi
 touch ~analyst/.bash_history
 source ./setup_bash_env.sh
 
-# Allow analyst group rwx 
+# Allow analyst group rwx
 chown -R analyst ~analyst
 chgrp -R analyst ~analyst
 chmod 775 -R ~analyst
@@ -147,7 +147,7 @@ chmod 775 -R ~analyst
 # Run setup script as user analyst
 su - analyst -c ~analyst/setup.sh
 
-# Allow analyst user and group rwx 
+# Allow analyst user and group rwx
 chmod 775 -R ~analyst
 
 source ./clean_up.sh
@@ -155,6 +155,6 @@ source ./clean_up.sh
 # Send signal to Cloudformation
 /opt/aws/bin/cfn-signal -e $? --stack $stack_name --resource EC2Instance --region $AWS_DEFAULT_REGION
 
-[[ ! -z "$odapmgr_url" ]] && curl -k "${odapmgr_url}/${instanceid}/rebooting_MLiy(90)"
+[[ ! -z "$mliymgr_url" ]] && curl -k "${mliymgr_url}/ajax/progress/${instanceid}/rebooting_MLiy(90)"
 
 shutdown -r now

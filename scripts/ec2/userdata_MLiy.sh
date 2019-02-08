@@ -26,7 +26,7 @@ export TIME_ZONE='{{{TIME_ZONE}}}'
 
 # BEGIN Custom Settings
 # The DNS resolvable fully qualified hostname for MLiy Website
-export ODAPMGR_HOSTNAME='{{{ODAPMGR_HOSTNAME}}}'
+export MANAGER_HOSTNAME='{{{MANAGER_HOSTNAME}}}'
 
 # Custom R and Python Repository URLs
 export CRAN_REPO='{{{CRAN_REPO}}}'
@@ -55,6 +55,9 @@ mkdir MLiy
 cd MLiy
 aws s3 cp s3://$SOURCE_BUCKET/$SOURCE_PACKAGE .
 tar xzf $SOURCE_PACKAGE scripts/proxy.sh scripts/ec2/MLiy
+if [[ -f scripts/proxy.sh ]]; then
+  export PROXY_SCRIPT="$(pwd)/scripts/proxy.sh"
+fi
 rm -rf $SOURCE_PACKAGE
 cd scripts/ec2/MLiy
 export SCRIPT_DIR=$(pwd)

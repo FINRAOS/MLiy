@@ -1,0 +1,190 @@
+[{
+	"model": "auth.group",
+	"pk": 1,
+	"fields": {
+		"name": "manager",
+		"permissions": []
+	}
+},{
+	"model": "mliyweb.param",
+	"pk": 1,
+	"fields": {
+		"token": "SOURCE_BUCKET",
+		"replacement": ""
+	}
+}, {
+	"model": "mliyweb.param",
+	"pk": 2,
+	"fields": {
+		"token": "SOURCE_SCRIPT",
+		"replacement": "install_ec2_MLiy.sh"
+	}
+}, {
+	"model": "mliyweb.param",
+	"pk": 3,
+	"fields": {
+		"token": "SOURCE_PACKAGE",
+		"replacement": "mliyweb.tar.gz"
+	}
+}, {
+	"model": "mliyweb.param",
+	"pk": 4,
+	"fields": {
+		"token": "EBS_DEVICE",
+		"replacement": "/dev/xvdz"
+	}
+}, {
+	"model": "mliyweb.param",
+	"pk": 5,
+	"fields": {
+		"token": "TIME_ZONE",
+		"replacement": "America/New_York"
+	}
+}, {
+	"model": "mliyweb.param",
+	"pk": 6,
+	"fields": {
+		"token": "MANAGER_HOSTNAME",
+		"replacement": "https://"
+	}
+}, {
+	"model": "mliyweb.param",
+	"pk": 7,
+	"fields": {
+		"token": "CRAN_REPO",
+		"replacement": "http://cran.us.r-project.org"
+	}
+}, {
+	"model": "mliyweb.param",
+	"pk": 8,
+	"fields": {
+		"token": "PyPi_REPO",
+		"replacement": ""
+	}
+}, {
+	"model": "mliyweb.param",
+	"pk": 9,
+	"fields": {
+		"token": "LDAP_HOST_NAME",
+		"replacement": ""
+	}
+}, {
+	"model": "mliyweb.param",
+	"pk": 10,
+	"fields": {
+		"token": "LDAP_USER_ID",
+		"replacement": ""
+	}
+}, {
+	"model": "mliyweb.param",
+	"pk": 11,
+	"fields": {
+		"token": "LDAP_USER_PASSWD_CMD",
+		"replacement": ""
+	}
+}, {
+	"model": "mliyweb.param",
+	"pk": 12,
+	"fields": {
+		"token": "LDAP_BASE_DN",
+		"replacement": ""
+	}
+}, {
+	"model": "mliyweb.param",
+	"pk": 13,
+	"fields": {
+		"token": "WILDCARD_PUBLIC_CERT",
+		"replacement": ""
+	}
+}, {
+	"model": "mliyweb.param",
+	"pk": 14,
+	"fields": {
+		"token": "WILDCARD_PRIVATE_CERT",
+		"replacement": ""
+	}
+}, {
+	"model": "mliyweb.param",
+	"pk": 15,
+	"fields": {
+		"token": "WILDCARD_CERTS_ARCHIVE",
+		"replacement": ""
+	}
+}, {
+	"model": "mliyweb.param",
+	"pk": 16,
+	"fields": {
+		"token": "CUSTOM_ROOT_CERTS",
+		"replacement": ""
+	}
+}, {
+	"model": "mliyweb.software_config",
+	"pk": 1,
+	"fields": {
+		"name": "TestConfig",
+		"user_data": null,
+		"cloud_formation": null,
+		"ami_id": "ami-id",
+		"addtl_volume_kms_key": "",
+		"addtl_vol_dev_path": "/dev/xvdz",
+		"addtl_vol_default_size": 100,
+		"addtl_vol_description": "Encrypted Home Directory Size",
+		"instance_name": "AWSLXMLIYTST",
+		"html_description": "No description.",
+		"has_progress_bar": false,
+		"params": [],
+		"compatible_instancetypes": [1],
+		"permitted_groups": [1]
+	}
+}, {
+	"model": "mliyweb.securitygroup",
+	"pk": 1,
+	"fields": {
+		"sgid": "sg-11111111",
+		"name": "MLiy_APP"
+	}
+}, {
+	"model": "mliyweb.securitygroup",
+	"pk": 2,
+	"fields": {
+		"sgid": "sg-00000000",
+		"name": "sample-group1"
+	}
+}, {
+	"model": "mliyweb.securitygroup",
+	"pk": 3,
+	"fields": {
+		"sgid": "sg-00020002",
+		"name": "sample-group2"
+	}
+}, {
+	"model": "mliyweb.securitygroup",
+	"pk": 4,
+	"fields": {
+		"sgid": "sg-03000300",
+		"name": "sample-group3"
+	}
+}, {
+	"model": "mliyweb.lastrefreshed",
+	"pk": 1,
+	"fields": {
+		"updated_at": "2018-06-11T20:09:31.274Z"
+	}
+}, {
+	"model": "mliyweb.groupconfig",
+	"pk": 1,
+	"fields": {
+		"group": 1,
+		"name": "MLiyTestConfig",
+		"AD_groupname": "",
+		"override_instance_name": "AWSLXMLiyTST",
+		"ags": "MLiy",
+		"cost_center": "PROJECT001",
+		"sdlc": "DEV",
+		"key_name": "APP_MLiy_KEY",
+		"iam_instance_profile_name": "APP_MLiy_CLIENT",
+		"exclInstances": [],
+		"default_security_grps": [1, 2, 3, 4],
+		"optional_security_grps": []
+	}
+}]
