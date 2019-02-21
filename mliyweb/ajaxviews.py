@@ -22,7 +22,7 @@ from django.views import generic
 from django.http import JsonResponse, Http404
 from django.shortcuts import get_object_or_404
 from django.contrib.auth.models import User
-from .settings import TIME_ZONE, AWS_DISCOUNT, MAX_INSTANCE_CACHE_AGE, AWS_REGION
+from .settings import TIME_ZONE, AWS_DISCOUNT, MAX_INSTANCE_CACHE_AGE, AWS_REGION, DEFAULT_CHARGE_CODE
 from .models import Instance, BillingData, LastRefreshed
 from .prices.instances import getPrice, getInstanceData
 from .refresh import InstanceRefreshThread
@@ -526,7 +526,7 @@ class changeInstanceState(JsonView):
 				if inst.current_bill != None:
 					bill.charge_name = inst.current_bill.charge_name
 				else:
-					bill.charge_name = "ODP900"
+					bill.charge_name = DEFAULT_CHARGE_CODE
 				bill.user = User.objects.get(username=inst.userid)
 				bill.price = getPrice(inst.instance_type) * (1.0 - AWS_DISCOUNT)
 				bill.start_time = datetime.now(timezone('UTC'))

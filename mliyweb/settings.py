@@ -46,6 +46,8 @@ S3_FILE_LOCATION=""
 
 MANAGER_HOSTNAME = "127.0.0.1:8000"
 
+DEFAULT_CHARGE_CODE = "CHANGEME"
+
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 AWS_S3 = 'https://s3.amazonaws.com'

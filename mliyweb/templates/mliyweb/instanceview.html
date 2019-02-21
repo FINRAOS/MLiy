@@ -94,7 +94,7 @@ limitations under the License. -->
             </table>
           </div>
           {% if object.state == 'stopped'%}
-
+            <input type="button" value="Start this Instance" onclick=startInst("{{ object.instance_id }}") />
             {% if object.userid|lower == user|lower or user.is_staff%}
               <input type="button" value="Terminate this Instance" onclick=termInst("{{ object.instance_id }}") />
             {% endif %}
