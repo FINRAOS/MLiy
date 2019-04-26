@@ -19,7 +19,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 
 '''
-from .models import GroupConfig, Software_Config, Instance
+from .models import GroupConfig, Software_Config, Instance, Cluster
 from django.contrib.auth.models import User, Group
 from .settings import MANAGER_GROUP_NAME
 import logging
@@ -44,7 +44,13 @@ class GroupConfigMiddleware(MiddlewareMixin):
 			# query = Q()
 
 			response.context_data['groupconfig'] = grpcfg
+			response.context_data['emraccess'] = False
 
+
+			clusters = Cluster.objects.all()
+			for cluster in clusters:
+				if cluster.userid.lower() == str(request.user).lower():
+					response.context_data['emrhome'] = True
 
 			instances = Instance.objects.all()
 			for instance in instances:
@@ -54,14 +60,19 @@ class GroupConfigMiddleware(MiddlewareMixin):
 			response.context_data['ec2access'] = Software_Config.objects.filter(permitted_groups__in=grpcfg).count() > 0
 
 			for group in grpcfg:
-				#	query &= Q(permitted_groups )
+				if group.emr_access:
+					response.context_data['emraccess'] = True
 				if group.group.name == MANAGER_GROUP_NAME:
+					response.context_data['emraccess'] = True
 					response.context_data['ec2access'] = True
+					response.context_data['emrhome'] = True
 					response.context_data['ec2home'] = True
 
-			return response
+				return response
 		response.context_data['groupconfig'] = None
+		response.context_data['emraccess'] = False
 		response.context_data['ec2access'] = False
+		response.context_data['emrhome'] = False
 		response.context_data['ec2home'] = False
 		return response
 

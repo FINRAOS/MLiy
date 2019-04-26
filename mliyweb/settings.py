@@ -16,7 +16,7 @@ Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-     http://www.apache.org/licenses/LICENSE-2.0
+http://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -27,22 +27,38 @@ limitations under the License.
 '''
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
 import os
+import requests
 
-DJANGO_LOG_LOWLEVEL='ERROR'
 
-LOG_LOCATION="/home/mliyapp/logs"
+r = requests.get("http://169.254.169.254/latest/dynamic/instance-identity/document")
+response_json = r.json()
 
-LAUNCH_LOG_LEVEL='ERROR'
+AWS_REGION = response_json.get('region')
 
-DNS_PLUGIN="plugin"
+DJANGO_LOG_LOWLEVEL = 'INFO'
 
-AUTH_PLUGIN="ldapplugin"
+LOG_LOCATION = "/home/mliyapp/logs"
 
-DIRECTORY_FILE_LOCATION="scripts/ec2"
+LAUNCH_LOG_LEVEL = 'INFO'
 
-AWS_REGION="us-east-1"
+DNS_PLUGIN = "plugin"
 
-S3_FILE_LOCATION=""
+PARAM_PLUGIN = "paramplugin"
+
+AUTH_PLUGIN = "ldapplugin"
+
+LDAP_ADMIN_GROUP_ATTRIBUTE = '{{{ldap_admin_group_attribute}}}'
+
+# DNS REST API variables
+DNS_SERVICE = '{{{dns_service}}}'
+DOMAIN_NAME = '{{{domain_name}}}'
+DNS_API_URL = '{{{dns_api_url}}}'
+DNS_MLIY_URL = '{{{dns_mliy_domain}}}'
+DNS_DATA = {{{dns_api_data}}}
+
+DIRECTORY_FILE_LOCATION = "scripts/*"
+
+S3_FILE_LOCATION = ""
 
 MANAGER_HOSTNAME = "127.0.0.1:8000"
 
@@ -76,7 +92,8 @@ SECRET_KEY = '{{{django_secret_key}}}'
 
 DEBUG = False
 
-ALLOWED_HOSTS = ['localhost','{{{private_ip}}}','{{{public_ip}}}']
+
+ALLOWED_HOSTS = ['localhost', '{{{app_dns}}}', '{{{hostname}}}', '{{{private_ip}}}', '{{{public_ip}}}']
 
 # Application definition
 
@@ -131,20 +148,42 @@ WSGI_APPLICATION = 'mliyweb.wsgi.application'
 
 # Database
 # https://docs.djangoproject.com/en/1.8/ref/settings/#databases
+# Database parameters; default is SQLLITE3
+DB_TYPE = '{{{db_type}}}'
 
-DATABASES = {
+SQLLITE = {
 	'default': {
 		'ENGINE': 'django.db.backends.sqlite3',
 		'NAME': os.path.join(BASE_DIR, 'db.sqlite3'),
 	}
 }
 
+MYSQLDB = {
+	'default': {
+		'ENGINE': 'django.db.backends.mysql',
+		'NAME': '{{{db_name}}}',
+		'HOST': '{{{db_host}}}',
+		'PORT': '3306',
+		'USER': '{{{db_user}}}',
+		'PASSWORD': '{{{db_passwd}}}',
+		'OPTIONS': {
+			'charset': 'utf8',
+			'ssl': {'ca': '/etc/aws-rds/ssl/rds-combined-ca-bundle.pem'},
+		}
+	}
+}
+
+if DB_TYPE == 'mysql':
+	DATABASES = MYSQLDB
+else:
+	DATABASES = SQLLITE
+
 # Internationalization
 # https://docs.djangoproject.com/en/1.8/topics/i18n/
 
-LANGUAGE_CODE = 'en-us'
+LANGUAGE_CODE = '{{{language_code}}}'
 
-TIME_ZONE = 'US/Eastern'
+TIME_ZONE = '{{{time_zone}}}'
 
 USE_I18N = True
 
@@ -166,84 +205,93 @@ MAX_INSTANCE_CACHE_AGE = 5
 MANAGER_GROUP_NAME = 'manager'
 
 LOGGING = {
-        'version': 1,
-        'disable_existing_loggers': False,
-        'formatters' : {
-         'simple': {
-            'format': '%(asctime)s - %(levelname)s %(filename)s:%(lineno)d %(message)s'
-            },
-        },
-        'handlers': {
-            'console': {
-                'level': DJANGO_LOG_LOWLEVEL,
-                'class': 'logging.FileHandler',
-                'filename' : LOG_LOCATION+'/mliyweb.log',
-                'formatter': 'simple'
-                },
-            'launchlog' : {
-                'level' : DJANGO_LOG_LOWLEVEL,
-                'class' : 'logging.FileHandler',
-                'filename' : LOG_LOCATION+'/mliylaunch.log',
-                'formatter' : 'simple'
-                },
-            'authlog' : {
-                'level' : DJANGO_LOG_LOWLEVEL,
-                'class' : 'logging.FileHandler',
-                'filename' : LOG_LOCATION+'/auth.log',
-                'formatter' : 'simple'
-                },
-            'botolog' : {
-                'level' : DJANGO_LOG_LOWLEVEL,
-                'class' : 'logging.FileHandler',
-                'filename' : LOG_LOCATION+'/boto.log',
-                'formatter' : 'simple'
-                },
-             },
-        'loggers': {
-            'mliyweb.views': {
-                'handlers': ['console'],
-                'level': DJANGO_LOG_LOWLEVEL,
-                'propagate': True,
-                },
-            'mliyweb.auth': {
-                'handlers': ['authlog'],
-                'level': DJANGO_LOG_LOWLEVEL,
-                'propagate': True,
-                },
-            'mliyweb.views.SelectInstDetails': {
-                'handlers': ['launchlog'],
-                'level': LAUNCH_LOG_LEVEL,
-                'propagate': True,
-                },
-            'launch_logs': {
-                'handlers': ['launchlog'],
-                'level': LAUNCH_LOG_LEVEL,
-                'propagate': True,
-                },
-            'mliyweb.views.SelectEmrDetails': {
-                'handlers': ['launchlog'],
-                'level': LAUNCH_LOG_LEVEL,
-                'propagate': True,
-                },
-            'django.contrib.staticfiles': {
-                'handlers': ['console'],
-                'level': DJANGO_LOG_LOWLEVEL,
-                'propagate': True,
-                },
-            'boto' : {
-                'handlers' : ['botolog'],
-                'level' : DJANGO_LOG_LOWLEVEL,
-                'propagate' : True,
-            },
-            'boto3' : {
-                'handlers' : ['botolog'],
-                'level' : DJANGO_LOG_LOWLEVEL,
-                'propagate' : True,
-            }
-        },
+	'version': 1,
+	'disable_existing_loggers': False,
+	'formatters': {
+		'simple': {
+			'format': '%(asctime)s - %(levelname)s %(filename)s:%(lineno)d %(message)s'
+		},
+	},
+	'handlers': {
+		'console': {
+			'level': DJANGO_LOG_LOWLEVEL,
+			'class': 'logging.FileHandler',
+			'filename': LOG_LOCATION+'/mliyweb.log',
+			'formatter': 'simple'
+		},
+		'plugin': {
+			'level': DJANGO_LOG_LOWLEVEL,
+			'class': 'logging.FileHandler',
+			'filename': LOG_LOCATION+'/plugin.log',
+			'formatter': 'simple'
+		},
+		'launchlog': {
+			'level': DJANGO_LOG_LOWLEVEL,
+			'class': 'logging.FileHandler',
+			'filename': LOG_LOCATION+'/mliylaunch.log',
+			'formatter': 'simple'
+		},
+		'authlog': {
+			'level': DJANGO_LOG_LOWLEVEL,
+			'class': 'logging.FileHandler',
+			'filename': LOG_LOCATION+'/auth.log',
+			'formatter': 'simple'
+		},
+		'botolog': {
+			'level': DJANGO_LOG_LOWLEVEL,
+			'class': 'logging.FileHandler',
+			'filename': LOG_LOCATION+'/boto.log',
+			'formatter': 'simple'
+		},
+	},
+	'loggers': {
+		'mliyweb.views': {
+			'handlers': ['console'],
+			'level': DJANGO_LOG_LOWLEVEL,
+			'propagate': True,
+		},
+		'mliyweb.auth': {
+			'handlers': ['authlog'],
+			'level': DJANGO_LOG_LOWLEVEL,
+			'propagate': True,
+		},
+		'mliyweb.views.SelectInstDetails': {
+			'handlers': ['launchlog'],
+			'level': LAUNCH_LOG_LEVEL,
+			'propagate': True,
+		},
+		'launch_logs': {
+			'handlers': ['launchlog'],
+			'level': LAUNCH_LOG_LEVEL,
+			'propagate': True,
+		},
+		'plugin_logs': {
+			'handlers': ['plugin'],
+			'level': LAUNCH_LOG_LEVEL,
+			'propagate': True,
+		},
+		'mliyweb.views.SelectEmrDetails': {
+			'handlers': ['launchlog'],
+			'level': LAUNCH_LOG_LEVEL,
+			'propagate': True,
+		},
+		'django.contrib.staticfiles': {
+			'handlers': ['console'],
+			'level': DJANGO_LOG_LOWLEVEL,
+			'propagate': True,
+		},
+		'boto': {
+			'handlers': ['botolog'],
+			'level': DJANGO_LOG_LOWLEVEL,
+			'propagate': True,
+		},
+		'boto3': {
+			'handlers': ['botolog'],
+			'level': DJANGO_LOG_LOWLEVEL,
+			'propagate': True,
+		}
+	},
 }
 
-
-REPLACEMENT_TOKENS = [
-
-]
+# Used for setting default values for MLiy instances
+REPLACEMENT_TOKENS = []

@@ -24,10 +24,10 @@ lapack-devel lapack64-devel readline-devel libcurl-devel mysql-devel postgresql-
 pango-devel openmpi-devel libXt-devel git libgfortran readline cairo pango jpeg-turbo openjpeg turbojpeg gd blas lapack64 \
 atlas-sse3 libgomp python27-PyGreSQL python27-psycopg2 MySQL-python27 libxml2 libxml2-python27 poppler-glib openmpi tcl \
 httpd24 mod24_ssl gcc-gfortran java-1.8.0-openjdk java-1.8.0-openjdk-devel java-1.8.0-openjdk-headless openldap-clients openldap-devel \
-pam-devel httpd24-devel python34 python34-devel python34-libs python34-setuptools graphviz jq \
+pam-devel httpd24-devel python36.x86_64 python36-devel.x86_64 python36-libs.x86_64 python36-setuptools graphviz jq \
 bzip2-devel.x86_64 pcre-devel.x86_64 screen aws-cfn-bootstrap sqlite-devel gdbm-devel libpcap-devel valgrind-devel
 
 # pip install doesn't work without the following work around
 
-retry yum remove -y -q python27-pip
-retry yum install -y -q python27-pip
+retry yum remove -y -q python27-pip >/dev/null
+retry yum install -y -q python27-pip >/dev/null

@@ -14,7 +14,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 
 """
-from .update import InstanceUpdateThread
+from .update import InstanceUpdateThread, ClusterUpdateThread
+from .models import Cluster
 
 class InstanceRefreshThread(InstanceUpdateThread):
 	user = None
@@ -29,3 +30,13 @@ class InstanceRefreshThread(InstanceUpdateThread):
 
 		return qtags
 
+
+class ClusterRefreshThread(ClusterUpdateThread):
+	user = None
+
+	def __init__(self, user):
+		self.user = user
+		super(ClusterRefreshThread, self).__init__()
+
+	def get_clusters(self):
+		return Cluster.objects.get(userid=self.user.username)

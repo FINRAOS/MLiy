@@ -1,21 +1,26 @@
 """
 Launch thread that creates new instances.
 """
+from .plugin import loadFunction,runAllFunctions
 from django.contrib.auth.models import User
 from .dns import createDnsEntry, deleteDnsEntry, dnsDisplayName
-from .utils import getCurrentSubnetId, getCurrentSubnetAz
-from .settings import AWS_DISCOUNT, AWS_EBS_PRICE, REPLACEMENT_TOKENS, AWS_REGION
-from .models import Instance, Volume, GroupConfig, InstanceType, SecurityGroup, BillingData, Stack
-from .prices.instances import getPrice
+from .utils import getCurrentSubnetId, getCurrentSubnetAz, getSubnets, findVPCID
+from .settings import AWS_DISCOUNT, AWS_EBS_PRICE, AWS_S3, S3_BUCKET, REPLACEMENT_TOKENS, AWS_REGION,TIME_ZONE, PARAM_PLUGIN
+from .models import Instance, Volume, GroupConfig, InstanceType, Cluster, SecurityGroup, BillingData, Stack
+from .prices.instances import getPrice, getSpotPrice, getEmrPrice
 from datetime import datetime
 from pytz import timezone
 from uuid import uuid4
+from botocore.exceptions import ClientError
+import random
 import time
 import threading
 import boto3
 import logging
 import base64
 import uuid
+import json
+import yaml
 
 '''
 Copyright 2017 MLiy Contributors
@@ -24,7 +29,7 @@ Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-	 http://www.apache.org/licenses/LICENSE-2.0
+http://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -33,154 +38,178 @@ See the License for the specific language governing permissions and
 limitations under the License.
 
 '''
-
 # global variable that contains the scoreboard data
 
 launchscoreboard = {}
 
-
 class launchInstanceThread(threading.Thread):
 	"""
-	This thread contains the launch logic for an instance. It will update
+    This thread contains the launch logic for an instance. It will update
 	the launch scoreboard for the launch id it is given, and unlike the in-request launcher will
 	continue to work whether the user closes their browser or not.
 	"""
 
 	launchform = None
 	user = None
-	swconfig = None
+	sw_config = None
 	kwargs = None
-	lid = None
+	launch_id = None
 	logger = logging.getLogger("launch_logs")
 
 	def __init__(self, form, user, software_config, kwargs):
 		super().__init__()
 		self.launchform = form
 		self.user = user
-		self.swconfig = software_config
+		self.sw_config = software_config
 		self.kwargs = kwargs
-		self.lid = str(uuid4())[-12:]
+		self.launch_id = str(uuid4())[-12:]
+		self.group_config = GroupConfig.objects.get(pk=self.kwargs['grpid'])
+		self.instance_type = InstanceType.objects.get(id=form.cleaned_data['instance_type']).aws_name
+		self.sg_ids = list(self.group_config.default_security_grps.all().values_list('sgid', flat=True))
+		self.instance_size = InstanceType.objects.get(pk=form.cleaned_data['instance_type'])
+		self.snapshot_id = ''.join([p.replacement for p in software_config.params.all() if p.token == 'SNAPSHOT_ID'])
 
 	def _setsb(self, msg, step=None):
 		"""
 		sets scoreboard message
 		"""
-		if step: launchscoreboard[self.lid]['step'] = step
-		launchscoreboard[self.lid]['message'] = msg
-		self.logger.debug("state message for %s : %s", self.lid, msg)
+		if step: launchscoreboard[self.launch_id]['step'] = step
+		launchscoreboard[self.launch_id]['message'] = msg
+		self.logger.debug("state message for %s : %s", self.launch_id, msg)
 
 	def run(self):
 
-		self.logger.debug("launching instance with uuid = %s", self.lid)
-		launchscoreboard[self.lid] = {'userid': self.user.id}
+		self.logger.debug("launching instance with uuid = %s", self.launch_id)
+		launchscoreboard[self.launch_id] = {'userid': self.user.id}
 		self._setsb('thread starting', 1)
 		self.launch_instance(self.launchform)
+
+	def run_param_replace(self, user_data, sw_config, group_config):
+		try:
+			try:
+				results = runAllFunctions("paramReplace",PARAM_PLUGIN,{},user_data, sw_config, group_config)
+				if len(results) == 1:
+					return results[0]
+				else:
+					self.logger.error("found multiple implementations for custom parameter replacement")
+				return user_data
+			except NameError as e:
+				self.logger.exception(e)
+				self.logger.warning("did not find any implementation for parameter replace injection")
+		except Exception as e:
+			self.logger.exception(e)
+		return user_data
+
+	def replace_params(self, user_data, sw_config, group_config):
+
+		user_data = self.run_param_replace(user_data, sw_config, group_config)
+
+		# replace the tokens in the params
+		params = sw_config.params.all()
+
+		for p in params:
+			user_data = user_data.replace('{{{' + p.token + '}}}', p.replacement)
+
+		for p in REPLACEMENT_TOKENS:
+			user_data = user_data.replace('{{{' + p[0] + '}}}', p[1])
+
+		return user_data
 
 	def launch_instance(self, form):
 
 		logger = self.logger
 
-		swconfig = self.swconfig
-
-		s_rec = None
+		stack_record = None
 
 		try:
+			instance_type = self.instance_type
+			instance_size = self.instance_size
+
+			group_config = self.group_config
+			sw_config = self.sw_config
 
 			subnet_id = getCurrentSubnetId()
-
 			subnet_az = getCurrentSubnetAz()
 
-			instance_size = InstanceType.objects.get(pk=form.cleaned_data['instance_type'])
+			snapshot_id = self.snapshot_id
+
+			template_body = sw_config.cloud_formation.body
+			user_data = self.replace_params(sw_config.user_data.body,sw_config,group_config)
+
 			if 'optional_security_groups' in form.cleaned_data:
-				opt_sgs = form.cleaned_data['optional_security_groups']
+				sgs_optional = form.cleaned_data['optional_security_groups']
 			else:
-				opt_sgs = {}
+				sgs_optional = {}
 
 			logger.debug("Launch config %s w instance-type '%s' and security groups %s",
-						swconfig,
-						instance_size,
-						opt_sgs)
-			# get role
-			lgroup = GroupConfig.objects.get(pk=self.kwargs['grpid'])
+						 sw_config,
+						 instance_size,
+						 sgs_optional)
 
-			sgids = list(lgroup.default_security_grps.all().values_list('sgid', flat=True))
-			if len(opt_sgs) > 0:
-				sgids += list(SecurityGroup.objects.filter(id__in=opt_sgs).values_list('sgid', flat=True))
-			logger.debug("Launching with sgids %s", sgids)
+			sg_ids = list(group_config.default_security_grps.all().values_list('sgid', flat=True))
+			if len(sgs_optional) > 0:
+				sg_ids += list(SecurityGroup.objects.filter(id__in=sgs_optional).values_list('sgid', flat=True))
 
-			itype = InstanceType.objects.get(id=form.cleaned_data['instance_type']).aws_name
+			logger.debug("Launching with sgids %s", sg_ids)
+			logger.debug("Instance type '%s'", instance_type)
 
-			logger.debug("Instance type '%s'", itype)
-			conn = boto3.client('cloudformation', region_name=AWS_REGION)
+			cf_client = boto3.client('cloudformation', region_name=AWS_REGION)
+
+			# Override software config stack name with group's stack name if it exists
+			instance_name = sw_config.instance_name
+			if group_config.override_instance_name is not None and len(group_config.override_instance_name) > 0:
+				instance_name = group_config.override_instance_name
 
 			tags = [
-				{'Key': 'Name', 'Value': swconfig.instance_name},
-				{'Key': 'AGS', 'Value': lgroup.ags}, {'Key': 'Cost Center', 'Value': lgroup.cost_center},
-				{'Key': 'SDLC', 'Value': lgroup.sdlc},
+				{'Key': 'Name', 'Value': instance_name},
+				{'Key': 'AGS', 'Value': group_config.ags}, {'Key': 'Cost Center', 'Value': group_config.cost_center},
+				{'Key': 'SDLC', 'Value': group_config.sdlc},
 				{'Key': 'User', 'Value': "{} {}".format(self.user.first_name, self.user.last_name)},
 				{'Key': 'userid', 'Value': str(self.user)},
 				{'Key': 'LaunchedBy', 'Value': 'MLIY'},
-				{'Key': 'Software Config', 'Value': swconfig.name}]
-
-			# See if group config contains name override
-			if lgroup.override_instance_name is not None and len(lgroup.override_instance_name) > 0:
-				tags[0]['Value'] = lgroup.override_instance_name
+				{'Key': 'Software Config', 'Value': sw_config.name}]
 
 			logger.debug("resources will be tagged to %s", tags)
 
-			user_data = swconfig.user_data.body
-
-			template_body = swconfig.cloud_formation.body
-
-			# replace the tokens in the params
-			params = swconfig.params.all()
-			for p in params:
-				user_data = user_data.replace('{{{' + p.token + '}}}', p.replacement)
-
-			for p in REPLACEMENT_TOKENS:
-				user_data = user_data.replace('{{{' + p[0] + '}}}', p[1])
-
 			cf_parameters = {
-				"KeyName": lgroup.key_name,
-				"ImageId": swconfig.ami_id,
-				"InstanceType": itype,
-				"IamInstanceProfile": lgroup.iam_instance_profile_name,
-				"SecurityGroupIds": ",".join(sgids),
+				"KeyName": group_config.key_name,
+				"ImageId": sw_config.ami_id,
+				"InstanceType": instance_type,
+				"IamInstanceProfile": group_config.iam_instance_profile_name,
+				"SecurityGroupIds": ",".join(sg_ids),
 				"SubnetId": subnet_id,
 				"AvailabilityZone": subnet_az,
-				"KmsKeyId": swconfig.addtl_volume_kms_key,
-				"EBSVolumeDeviceName": swconfig.addtl_vol_dev_path,
-				"VolumeSize": str(swconfig.addtl_vol_default_size),
+				"KmsKeyId": sw_config.addtl_volume_kms_key,
+				"EBSVolumeDeviceName": sw_config.addtl_vol_dev_path,
+				"VolumeSize": str(sw_config.addtl_vol_default_size),
 				"UserData": base64.b64encode(bytes(user_data, "utf-8")).decode("utf-8")
 			}
 
+			if snapshot_id and len(snapshot_id) > 16:
+				cf_parameters.update({'SnapshotId': snapshot_id})
+
 			cf_parameters = self.provide_parameters(cf_parameters)
 
-			self._setsb('launched cloud formation', 1)
-
 			stack_name="AWSLXMliy-"
-			if lgroup.override_instance_name is not None and len(lgroup.override_instance_name) > 0:
-				stack_name = lgroup.override_instance_name
+			if group_config.override_instance_name is not None and len(group_config.override_instance_name) > 0:
+				stack_name = group_config.override_instance_name
 
-			cf_response = conn.create_stack(
-				StackName=stack_name + lgroup.ags + str(uuid.uuid4()),  # TODO Add UUID?
+			cf_response = cf_client.create_stack(
+				StackName=stack_name + group_config.ags + str(uuid.uuid4()),
 				TemplateBody=template_body,
 				Parameters=cf_parameters,
 				DisableRollback=False,
 				Tags=tags
 			)
 
+			self._setsb('launched cloud formation', 1)
+
 			stack_id = cf_response['StackId']
 
-			cf_resources = conn.describe_stack_resources(
-				StackName=stack_id
-			)
+			cf_resources = cf_client.describe_stack_resources(StackName=stack_id)
 
-			s_rec = Stack(
-				stack_id=stack_id
-			)
-
-			s_rec.save()
+			stack_record = Stack(stack_id=stack_id)
+			stack_record.save()
 
 			cf_resources = cf_resources['StackResources']
 
@@ -194,16 +223,10 @@ class launchInstanceThread(threading.Thread):
 				for resource in cf_resources:
 					if 'PhysicalResourceId' in resource:
 						if resource['ResourceType'] == 'AWS::EC2::Instance':
-
 							self.provide_instance_details(instance_id=resource['PhysicalResourceId'],
-														swconfig=swconfig,
-														logger=logger,
-														itype=itype,
-														lgroup=lgroup,
-														s_rec=s_rec)
+														  stack_record=stack_record)
 
 						elif resource['ResourceType'] == 'AWS::EC2::Volume':
-
 							self.provide_volume_details(volume_id=resource['PhysicalResourceId'])
 
 					started += 1
@@ -216,8 +239,7 @@ class launchInstanceThread(threading.Thread):
 
 				self._setsb('creating cloudformation resources ', 1 + started + complete)
 
-				cf_state = conn.describe_stacks(StackName=stack_id)['Stacks'][0]
-
+				cf_state = cf_client.describe_stacks(StackName=stack_id)['Stacks'][0]
 				cf_status = cf_state['StackStatus']
 
 				if started != 0:
@@ -238,9 +260,7 @@ class launchInstanceThread(threading.Thread):
 						wait_time = 60
 
 					time.sleep(wait_time)
-					cf_resources = conn.describe_stack_resources(
-						StackName=stack_id
-					)
+					cf_resources = cf_client.describe_stack_resources(StackName=stack_id)
 					cf_resources = cf_resources['StackResources']
 				pass
 
@@ -249,11 +269,7 @@ class launchInstanceThread(threading.Thread):
 				if resource['ResourceType'] == 'AWS::EC2::Instance':
 
 					self.provide_instance_details(instance_id=resource['PhysicalResourceId'],
-												swconfig=swconfig,
-												logger=logger,
-												itype=itype,
-												lgroup=lgroup,
-												s_rec=s_rec)
+												  stack_record=stack_record)
 					logger.debug('finished launching Instance ' + resource['PhysicalResourceId'])
 
 				elif resource['ResourceType'] == 'AWS::EC2::Volume':
@@ -264,72 +280,88 @@ class launchInstanceThread(threading.Thread):
 				self._setsb('cloudformation stack created ', 8)
 
 		except Exception as e:
+			if 'instance_id' not in locals():
+				instance_id = "Error:" + e.__class__.__name__ +  ":" + self.launch_id
+			self.provide_instance_details(instance_id, stack_record="Error")
 			logger.exception(e)
 			self._setsb(str(e))
-			if s_rec is not None:
-				s_rec.delete()
+			if stack_record is not None:
+				stack_record.delete()
 			raise e
 
-	def provide_instance_details(self, instance_id, swconfig, logger, itype, lgroup, s_rec):
+	def provide_instance_details(self, instance_id , stack_record):
+		logger = self.logger
+
+		id = instance_id
 		ec2 = boto3.resource('ec2', region_name=AWS_REGION)
+		error = True if "Error" in instance_id else False
 
-		inst = ec2.Instance(instance_id)
+		# Setting this to anything other than blank causes a race condition with the update thread
+		# and setting the DNS.
+		private_ip_address = ''
 
-		irec, created = Instance.objects.get_or_create(
-			instance_id=inst.id,
-			private_ip=inst.private_ip_address,
+		if not error:
+			instance_aws = ec2.Instance(instance_id)
+			id = instance_aws.id
+			private_ip_address = instance_aws.private_ip_address
+			state = instance_aws.state['Name']
+		else:
+			state = "error"
+
+		instance_record, created = Instance.objects.get_or_create(
+			instance_id=id,
+			private_ip=private_ip_address,
 			userid=self.user.username,
 			owner="{} {}".format(self.user.first_name, self.user.last_name),
-			instance_type=inst.instance_type,
-			software_config=swconfig
+			instance_type=self.instance_type,
+			software_config=self.sw_config
 		)
 
-		irec.stack_id=s_rec
-		irec.state=inst.state['Name']
-		irec.updated_at = datetime.now(timezone('UTC'))
+		instance_record.stack_id = stack_record
+		instance_record.state = state
+		instance_record.updated_at = datetime.now(timezone('UTC'))
 
-		if irec.current_bill is None:
+		if instance_record.current_bill is None and not error:
 			# Billing Data
 			bill = BillingData()
 
 			bill.ongoing = True
-			bill.instance_type = itype
-			bill.instance_name = irec.instance_id
-			bill.charge_name = lgroup.cost_center
-			bill.user = User.objects.get(username=irec.userid)
-			bill.price = getPrice(itype) * (1.0 - AWS_DISCOUNT)
+			bill.instance_type = self.instance_type
+			bill.instance_name = instance_record.instance_id
+			bill.charge_name = self.group_config.cost_center
+			bill.user = self.user
+			bill.price = getPrice(self.instance_type) * (1.0 - AWS_DISCOUNT)
 			bill.start_time = datetime.now(timezone('UTC'))
 			bill.save()
 
-			irec.current_bill = bill
+			instance_record.current_bill = bill
 
 		if created:
 
-			if swconfig.has_progress_bar:
-				irec.progress_status = 'Initializing system'
-				irec.progress_integer = 0
+			if self.sw_config.has_progress_bar:
+				instance_record.progress_status = 'Initializing system'
+				instance_record.progress_integer = 0
 
-			irec.start_at = datetime.now(timezone('UTC'))
-			irec.state = 'Initializing'
+			instance_record.start_at = datetime.now(timezone('UTC'))
+			instance_record.state = 'Initializing'
 
 			# create DNS entry
 			try:
 
-				r = createDnsEntry(irec.instance_id, irec.private_ip)
+				r = createDnsEntry(instance_record.instance_id, instance_record.private_ip)
 
 			except Exception as e:
 				logger.error("While attempting to add DNS:")
 				logger.exception(e)
 
 			finally:
-				irec.dns_url = dnsDisplayName(irec.instance_id, irec.private_ip)
+				instance_record.dns_url = dnsDisplayName(instance_record.instance_id, instance_record.private_ip)
 
-		irec.save()
+		instance_record.save()
 
 	def provide_volume_details(self, volume_id):
 
-		vrec = Volume(volume_id=volume_id,
-					userid=self.user.username)
+		vrec = Volume(volume_id=volume_id, userid=self.user.username)
 		vrec.save()
 
 	@staticmethod
@@ -342,3 +374,309 @@ class launchInstanceThread(threading.Thread):
 				"UsePreviousValue": False
 			})
 		return output
+
+
+class launchClusterThread(threading.Thread):
+	"""
+	It will update the launch scoreboard for the launch id it is given, and unlike the in-request launcher will
+	continue to work whether the user closes their browser or not.
+	"""
+
+	user = None
+	purpose = None
+	kwargs = None
+	bid = None
+	on_demand = None
+	launch_id = None
+	nodes = None
+	cost_center = None
+	logger = logging.getLogger('mliyweb.views.SelectEmrDetails')
+
+	def __init__(self, form_data, software_config, group_config, user, kwargs):
+		super().__init__()
+
+		self.purpose = form_data['purpose']
+		self.core_nodes = form_data['core_nodes']
+		self.task_nodes = form_data['task_nodes']
+		self.total_nodes = self.core_nodes + self.task_nodes + 1
+		self.on_demand = form_data['on_demand']
+		self.cost_center = form_data['cost_center']
+		self.instance_type = InstanceType.objects.get(id=form_data['instance_type']).aws_name
+		if self.on_demand:
+			self.bid = 0
+			self.market_type = "ON_DEMAND"
+		else:
+			self.bid = form_data['bid_price']
+			self.market_type = "SPOT"
+
+		self.launch_id = str(uuid4())[-12:]
+
+		self.user = user
+		self.kwargs = kwargs
+
+		self.software_config = software_config
+		self.group_config = group_config
+
+	def run(self):
+
+		self.logger.debug("launching cluster with uuid = %s", self.launch_id)
+		# launchscoreboard[self.launch_id]= { 'userid':self.user.id }
+		self.launch_cluster(self)
+
+	def launch_cluster(self, form):
+
+		cluster = None
+
+		try:
+			NETWORK_ID = self.user.username
+			UNIQUE_ID = self.launch_id
+
+			AGS = self.group_config.ags
+			SDLC = self.group_config.sdlc
+			COST_CENTER = self.cost_center
+			PURPOSE = self.purpose
+			BID = self.bid
+
+			if self.software_config.master_security_group is not None:
+				MASTER_SG = self.software_config.master_security_group.sgid
+				SLAVE_SG= self.software_config.slave_security_group.sgid
+				logging.debug(self.software_config.name)
+			else:
+				MASTER_SG = ""
+				SLAVE_SG = ""
+				logging.debug(self.software_config.name)
+
+			ADDITIONAL_MASTER_SG = ""
+			ADDITIONAL_SLAVE_SG = ""
+
+			if self.software_config.additional_master_security_groups is not None:
+				for security_group in self.software_config.additional_master_security_groups.all():
+					ADDITIONAL_MASTER_SG = ADDITIONAL_MASTER_SG + security_group.sgid + ','
+				ADDITIONAL_MASTER_SG = ADDITIONAL_MASTER_SG.rstrip(',')
+			if self.software_config.additional_slave_security_groups is not None:
+				for security_group in self.software_config.additional_slave_security_groups.all():
+					ADDITIONAL_SLAVE_SG = ADDITIONAL_SLAVE_SG + security_group.sgid + ','
+				ADDITIONAL_SLAVE_SG = ADDITIONAL_SLAVE_SG.rstrip(',')
+
+			subnets = []
+
+			if SDLC == "PRODY":
+				subnets = getSubnets(findVPCID('analytics'), 'dynamic')
+			else:
+				subnets = getSubnets(findVPCID('general'), 'dynamic')
+
+			SUBNET_NUM = random.randint(0, len(subnets) - 1)
+			SUBNET_ID = subnets[SUBNET_NUM]['SubnetId']
+
+			OWNER = "{} {}".format(self.user.first_name, self.user.last_name)
+
+			group_name = self.group_config.override_instance_name
+			software_name = self.software_config.instance_name
+			if group_name:
+				name =  group_name + "-" + self.market_type + "-" + UNIQUE_ID + "-" + NETWORK_ID
+			else:
+				name = software_name + "-" + self.market_type + "-" + UNIQUE_ID + "-" + NETWORK_ID
+
+			stack_name = name[0:40].replace("_","-")
+
+			template_body = self.software_config.cloud_formation.body
+
+			# Find out the instance type from
+
+			self.logger.debug("launching cluster with name = %s", stack_name)
+
+			# Parameters that come from user input, Group Config, and the Software Config
+			included_parameters = [{'ParameterKey': "paramClusterName", 'ParameterValue': stack_name},
+								   {'ParameterKey': "paramEnvironment", 'ParameterValue': SDLC},
+								   {'ParameterKey': "paramTimeZone", 'ParameterValue': TIME_ZONE},
+								   {'ParameterKey': "paramAGS", 'ParameterValue': AGS},
+								   {'ParameterKey': "paramInstanceType", 'ParameterValue': self.instance_type},
+								   {'ParameterKey': "paramCoreInstanceCount", 'ParameterValue': str(self.core_nodes)},
+								   {'ParameterKey': "paramTaskInstanceCount", 'ParameterValue': str(self.task_nodes)},
+								   {'ParameterKey': "paramBidPrice", 'ParameterValue': str(BID)},
+								   {'ParameterKey': "paramSubnetID", 'ParameterValue': SUBNET_ID},
+								   {'ParameterKey': "paramEc2KeyName", 'ParameterValue': self.group_config.key_name},
+								   {'ParameterKey': "paramEMRManagedMasterSecurityGroup", 'ParameterValue': MASTER_SG},
+								   {'ParameterKey': "paramEMRManagedSlaveSecurityGroup", 'ParameterValue': SLAVE_SG},
+								   {'ParameterKey': "paramAdditionalMasterSecurityGroups", 'ParameterValue': ADDITIONAL_MASTER_SG},
+								   {'ParameterKey': "paramAdditionalSlaveSecurityGroups", 'ParameterValue': ADDITIONAL_SLAVE_SG},
+								   ]
+			if self.on_demand:
+				included_parameters.append({'ParameterKey': "paramMarketType", 'ParameterValue': 'ON_DEMAND'})
+				included_parameters.append({'ParameterKey': "paramBidPrice", 'ParameterValue': '1.00'})
+
+			else:
+				included_parameters.append({'ParameterKey': "paramMarketType", 'ParameterValue': 'SPOT'})
+
+			try:
+				cloudformation = json.loads(self.software_config.cloud_formation.body)
+			except json.JSONDecodeError:
+				logging.debug('JSON Parse failed, attempting YAML parsing')
+				cloudformation = yaml.load(self.software_config.cloud_formation.body)
+
+			# Cloudformation parameters must be dynamically set from models.param to allow more flexibility
+			parameters = []
+
+			# Params that come from MLiy
+			for param in included_parameters:
+				if param['ParameterKey'] in cloudformation['Parameters']:
+					parameters.append(param)
+
+			# User provided params
+			for param in self.software_config.params.all():
+				if param.token in cloudformation["Parameters"]:
+					parameters.append({'ParameterKey': param.token, 'ParameterValue': param.replacement})
+
+			tags = [{'Key': "Cost Center", 'Value': COST_CENTER}, {'Key': "AGS", 'Value': AGS},
+					{'Key': "SDLC", 'Value': SDLC}, {'Key': "Purpose", 'Value': PURPOSE},
+					{'Key': "Owner", 'Value': OWNER}, {'Key': "Name", 'Value': stack_name},
+					{'Key': "Creator", 'Value': NETWORK_ID}, {'Key': "Launched By", 'Value': 'MLiy'}]
+
+
+
+			client = boto3.client('cloudformation', region_name=AWS_REGION)
+
+			response = client.create_stack(TemplateBody=template_body, StackName=stack_name,
+										   Parameters=parameters, DisableRollback=False,
+										   Tags=tags)
+			stack_id = response["StackId"]
+
+			cluster = Cluster()
+			cluster.master_ip = "To Be Determined"
+			cluster.userid = NETWORK_ID
+			cluster.stack_id = stack_id
+			cluster.cluster_id = "To Be Determined"
+			cluster.owner = OWNER
+			cluster.purpose = PURPOSE
+			cluster.node_max = str(self.total_nodes)
+			cluster.on_demand = self.on_demand
+			cluster.software_config = self.software_config
+			cluster.node_count = 0
+			cluster.updated_at = datetime.now(timezone('UTC'))
+			cluster.task_node = self.task_nodes
+			cluster.state = "CREATE_IN_PROGRESS"
+			cluster.save()
+
+			self.logger.debug("stack created with stack name = %s", stack_name)
+			response = client.describe_stacks(StackName=stack_name)
+
+			while response['Stacks'][0]['StackStatus'] == 'CREATE_IN_PROGRESS':
+				time.sleep(5)
+				response = client.describe_stacks(StackName=stack_name)
+
+			if response['Stacks'][0]['StackStatus'] != 'CREATE_COMPLETE':
+				cluster.state = "An Error has occurred"
+				cluster.save()
+				self.logger.debug('State isn\'t CREATE_COMPLETE, exiting')
+				raise Exception('Something went terribly wrong: ' + str(response))
+
+			# Use the ClusterId to describecluster to get Ip
+			cluster_id = response['Stacks'][0]['Outputs'][0]['OutputValue']
+			self.logger.debug("cluster created with cluster id = %s", cluster_id)
+			emr = boto3.client('emr', region_name=AWS_REGION)
+
+			response = emr.describe_cluster(ClusterId=cluster_id)
+			state = response['Cluster']['Status']['State']
+
+			self.logger.debug("state = %s", state)
+
+			response = emr.list_instances(ClusterId=cluster_id, InstanceGroupTypes=['MASTER'])
+			ip = response['Instances'][0]['PrivateIpAddress']
+
+			self.logger.debug("ip = %s", ip)
+
+			response = emr.list_instance_groups(ClusterId=cluster_id)
+			inst_groups = response['InstanceGroups']
+			nodes_count = 0
+			for grp in inst_groups:
+				nodes_count = nodes_count + grp['RunningInstanceCount']
+
+			self.logger.debug("nodes = %s", nodes_count)
+
+			cluster.delete()
+			cluster = Cluster()
+			cluster.cluster_id = cluster_id
+			cluster.owner = OWNER
+			cluster.userid = NETWORK_ID
+			cluster.stack_id = stack_id
+			cluster.purpose = PURPOSE
+			cluster.state = 'Initializing'
+			cluster.master_ip = ip
+			cluster.updated_at = datetime.now(timezone('UTC'))
+			cluster.node_count = nodes_count
+			cluster.node_max = str(self.total_nodes)
+			cluster.on_demand = self.on_demand
+			cluster.software_config = self.software_config
+			cluster.task_node = self.task_nodes
+			cluster.save()
+
+			# Look at step last-step to complete before notifying users that the cluster is ready to use
+			interval = 20
+			RETRY_EXCEPTIONS = ('ProvisionedThroughputExceededException', 'ThrottlingException')
+
+			last_step = False
+			while not last_step:
+				time.sleep(interval)
+				try:
+					response = emr.list_steps(ClusterId=cluster_id)
+					list_step = response['Steps']
+					all_completed = True
+					for step in list_step:
+						all_completed = all_completed and step['Status']['State'] == 'COMPLETED'
+					if all_completed:
+						last_step = True
+				except ClientError as err:
+					if err.response['Error']['Code'] not in RETRY_EXCEPTIONS:
+						raise
+					interval = min(60, interval + 20)
+
+			response = emr.describe_cluster(ClusterId=cluster_id)
+			state = response['Cluster']['Status']['State']
+			availability_zone = response['Cluster']['Ec2InstanceAttributes']['Ec2AvailabilityZone']
+
+			# Billing Data
+			if self.on_demand:
+				base_price = getPrice(self.instance_type)
+			else:
+				base_price = getSpotPrice(self.instance_type, availability_zone=availability_zone)
+			emr_price = getEmrPrice(self.instance_type)
+
+			bill = BillingData()
+			bill.ongoing = True
+			bill.instance_name = cluster.cluster_id
+			bill.charge_name = COST_CENTER
+			bill.user = User.objects.get(username=self.user.username)
+			bill.start_time = datetime.now(timezone('UTC'))
+			bill.price = (base_price + emr_price) * self.total_nodes * (1.0 - AWS_DISCOUNT)
+			bill.instance_type = self.market_type.replace('_',' ') + ' | ' \
+								 + self.instance_type + ' | ' \
+								 + str(self.total_nodes) + ' nodes'
+
+			bill.save()
+
+			cluster.current_bill = bill
+			cluster.state = state
+			cluster.updated_at = datetime.now(timezone('UTC'))
+			cluster.save()
+
+			self.logger.debug("Cluster object created")
+		except Exception as e:
+			# Case: launch_cluster errors out before the cluster object gets initialized
+			if cluster is None:
+				cluster = Cluster()
+				cluster.cluster_id = "Error:" + e.__class__.__name__ + ":" + self.launch_id
+				cluster.core_nodes = self.core_nodes
+				cluster.master_ip = "An Error has occurred"
+				cluster.node_max = self.total_nodes
+				cluster.on_demand = self.on_demand
+				cluster.owner = self.user.first_name + " " + self.user.last_name
+				cluster.purpose = self.purpose
+				cluster.software_config = self.software_config
+				cluster.task_node = self.task_nodes
+				cluster.userid = self.user.username
+				cluster.stack_id="launch id: " + self.launch_id + " error: " + str(e)
+			cluster.state = "An Error has occurred"
+			cluster.updated_at = datetime.now(timezone('UTC'))
+			cluster.save()
+			self.logger.error(e)
+			raise e

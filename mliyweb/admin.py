@@ -32,21 +32,31 @@ class MyAdminSite(admin.sites.AdminSite):
 		#pass
 		return super().index(request, extra_context)
 
+
 class SoftwareConfigAdmin(admin.ModelAdmin):
 	list_display = ('name', 'ami_id')
 	save_as = True
 	save_on_top = True
 	fieldsets = (
-		(None, {
-			'fields': ('name', 'params', 'user_data','cloud_formation', 'ami_id', 'compatible_instancetypes',
-					   'permitted_groups', 'instance_name', 'html_description','has_progress_bar')
-		}),
-		('Storage and KMS', {
-			# 'classes' : ('collapse',),
+
+		('Shared Configurations (Instance and Cluster)', {
 			'fields': (
-				'addtl_volume_kms_key', 'addtl_vol_dev_path', 'addtl_vol_default_size',
+				'name', 'params', 'cloud_formation', 'compatible_instancetypes',
+				'instance_name', 'html_description','permitted_groups',)
+		}),
+		('Instance Configurations', {
+			'classes': ('collapse', 'open'),
+			'fields': (
+				'user_data', 'ami_id', 'has_progress_bar',  'addtl_volume_kms_key',
+				'addtl_vol_dev_path', 'addtl_vol_default_size',
 				'addtl_vol_description')
 		}),
+		("EMR Configurations", {
+			'classes': ('collapse', 'open'),
+			'fields': ('emr_config', 'master_security_group',
+					   'slave_security_group', 'additional_master_security_groups', 'additional_slave_security_groups', 'custom_url_format')
+		}
+		 ),
 	)
 
 
@@ -83,6 +93,11 @@ class GroupConfigAdmin(admin.ModelAdmin):
 	list_display = ('group', 'name', 'AD_groupname')
 
 
+class ClusterAdmin(admin.ModelAdmin):
+	list_display = ('cluster_id', 'owner', 'state', 'purpose',
+		 'master_ip')
+	search_fields = ['cluster_id', 'owner', 'userid']
+
 
 admin_site = MyAdminSite(name="myadmin")
 
@@ -93,6 +108,7 @@ admin_site.register(models.Software_Config, SoftwareConfigAdmin)
 admin_site.register(models.Volume, VolumeAdmin)
 admin_site.register(models.Instance, InstanceAdmin)
 admin_site.register(models.Tag, TagAdmin)
+admin_site.register(models.Cluster, ClusterAdmin)
 admin_site.register(models.Param, ParamAdmin)
 admin_site.register(models.InstanceType)
 admin_site.register(models.SecurityGroup)

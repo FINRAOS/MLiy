@@ -22,9 +22,9 @@ from django.core.urlresolvers import reverse
 from django.shortcuts import get_object_or_404
 from django.core.exceptions import PermissionDenied
 from .settings import TIME_ZONE, MAX_INSTANCE_CACHE_AGE
-from .models import Instance, Software_Config, GroupConfig, InstanceType, User
+from .models import Instance, Software_Config, GroupConfig, InstanceType, User, Cluster
 from . import forms
-from .launch import launchInstanceThread
+from .launch import launchInstanceThread, launchClusterThread
 from .utils import has_permission
 from datetime import datetime, timedelta
 from pytz import timezone
@@ -51,6 +51,8 @@ class Home(generic.TemplateView):
 
 		return context
 
+class LoadingCluster(generic.TemplateView):
+	template_name = 'mliyweb/clusterload.html'
 
 class UserDashboard(generic.TemplateView):
 	template_name = 'mliyweb/user-dashboard.html'
@@ -118,6 +120,70 @@ class InstanceView(generic.DetailView):
 			raise PermissionDenied
 
 
+class ClusterView(generic.DetailView):
+	'''
+	Shows single cluster record. The template page contains javascript to call the instance
+	manipulation ajax.
+
+	Because of the way permissions are implemented, the permissions hook needs to be in the
+	get_object function.
+	'''
+	model = Cluster
+	template_name = 'mliyweb/clusterview.html'
+
+	def get_object(self, queryset=None):
+		obj = Cluster.objects.get(cluster_id=self.kwargs['pk'])
+		if has_permission(self.request.user,obj.userid):
+
+			# Create the custom URL at runtime. To do this, setattr() is needed to add the custom_url to the object.
+			custom_url = obj.software_config.custom_url_format.strip()
+			if custom_url is '' or custom_url is None or '{{{ URL }}}' not in custom_url:
+				if obj.dns_url is '' or obj.dns_url is None:
+					setattr(obj, 'custom_url', obj.master_ip)
+				else:
+					setattr(obj, 'custom_url', obj.dns_url)
+			else:
+				if obj.dns_url is '' or obj.dns_url is None:
+					setattr(obj, 'custom_url', custom_url.replace('{{{ URL }}}', obj.master_ip))
+				else:
+					setattr(obj, 'custom_url', custom_url.replace('{{{ URL }}}', obj.dns_url))
+			return obj
+		else:
+			raise PermissionDenied
+
+
+class SelectEmrDetails(generic.FormView):
+	'''
+	Page to create cluster
+
+	'''
+	template_name = 'mliyweb/pick-cluster-details.html'
+	form_class = forms.SelectEmrDetailsForm
+
+	def get_initial(self):
+		initial = super(SelectEmrDetails, self).get_initial()
+		initial['user'] = self.request.user
+		initial['swconfigid'] = self.kwargs['swconfigid']
+		initial['grpid'] = self.kwargs['grpid']
+
+		return initial
+
+	def form_valid(self, form):
+		# make logging specific so we can break it out
+		logger = logging.getLogger(__name__ + "." + self.__class__.__name__)
+
+		software_config = get_object_or_404(Software_Config, pk=self.kwargs['swconfigid'])
+		group_config = get_object_or_404(GroupConfig, pk=self.kwargs['grpid'])
+		form_data = form.cleaned_data
+
+		cluster_thread = launchClusterThread(form_data, software_config, group_config, self.request.user, self.kwargs)
+		cluster_thread.start()
+		logger.debug("Launch thread id is %s", cluster_thread.launch_id)
+		self.success_url = reverse('cluster-load', kwargs={})
+
+		return super(SelectEmrDetails, self).form_valid(form)
+
+
 class SelectGrpConfig(generic.ListView):
 	"""
 	Step 1
@@ -141,21 +207,25 @@ class SelectSwConfig(generic.ListView):
 	template_name = 'mliyweb/pick-instance-type.html'
 
 	def get_queryset(self, **kwargs):
-		log = logging.getLogger(__name__)
+		group_config = GroupConfig.objects.get(pk=self.kwargs['grpid'])
 
-		ugrp = GroupConfig.objects.get(pk=self.kwargs['grpid'])
-		qs = Software_Config.objects.filter(
-			pk__in=InstanceType.objects.filter(software_config__permitted_groups=ugrp).exclude(
-				pk__in=ugrp.exclInstances.all().values_list('pk', flat=True)).values_list('software_config__pk',
-																						  flat=True).distinct()).order_by(
-			'name')
-		log.debug("software_config for user: %s", qs.values())
+		software_configs = Software_Config.objects.filter(pk__in=InstanceType.objects
+				.filter(software_config__permitted_groups=group_config)
+				.exclude(pk__in=group_config.exclInstances.all().values_list('pk', flat=True))
+				.values_list('software_config__pk',flat=True)
+				.distinct())\
+			.order_by('name')
 
-		return qs
+		return software_configs
 
 	def get_context_data(self, **kwargs):
-		context = super(generic.ListView, self).get_context_data(**kwargs)
+		context = super().get_context_data(**kwargs)
+
+		group_config = GroupConfig.objects.get(pk=self.kwargs['grpid'])
+
 		context['grpid'] = self.kwargs['grpid']
+		context['group_config'] = group_config
+
 		return context
 
 
@@ -190,8 +260,8 @@ class SelectInstDetails(generic.FormView):
 
 		lit = launchInstanceThread(form, self.request.user, swconfig, self.kwargs)
 		lit.start()
-		logger.debug("Launch thread id is %s", lit.lid)
-		self.success_url = reverse('launchingpage', kwargs={'launchid': lit.lid})
+		logger.debug("Launch thread id is %s", lit.launch_id)
+		self.success_url = reverse('launchingpage', kwargs={'launchid': lit.launch_id})
 
 		return super(SelectInstDetails, self).form_valid(form)
 

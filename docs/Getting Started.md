@@ -27,6 +27,11 @@ Adminsitrators define one or more sets of software that are used by end users. M
 - Tag processing power for cost allocation
 - On-demand cost and usage reports
 
+## MLiy High-level Diagrams
+![End User Use Cases](img/MLiy_End_User_Use_Cases.GIF)
+
+![Administrator Use Cases](img/MLiy_Administrator_Use_Cases.GIF)
+
 ## MLiy Documentation
 - [Administrator Guide](./AdministratorGuide.md)
 - [User Guide](./UserGuide.md)

@@ -95,3 +95,70 @@ class SelectInstDetailsForm(forms.Form):
 							   ))
 
 		return cleaned_data
+
+
+class SelectEmrDetailsForm(forms.Form):
+	'''
+	Form class for cluster detail selections for the user. The fields are dynamically
+	generated; I had hoped there would have been a more elegant way invented by now.
+	'''
+
+	def __init__(self, *args, **kwargs):
+		'''
+		There are a number of variable assignments here to allow
+		one to more easily debug what the query sets are doing if one
+		gets a stack trace.
+		'''
+		super(SelectEmrDetailsForm, self).__init__(*args, **kwargs)
+
+		group_config_id = self.initial['grpid']
+		software_config_id = self.initial['swconfigid']
+
+		alphanumeric = RegexValidator(r'^[ -_0-9a-zA-Z]*$', 'Only alphanumeric characters are allowed.')
+
+		log = logging.getLogger(__name__)
+		self.error_css_class = "alert alert-danger"
+		zones = ['west', 'east']
+
+		try:
+			groupconfig = models.GroupConfig.objects.get(id=group_config_id)
+		except models.GroupConfig.DoesNotExist as e:
+			log.critical("Select instance details called with invalid group!\nInitial = %s", self.initial)
+			raise PermissionDenied
+
+		scitypes = models.Software_Config.objects.get(id=software_config_id) \
+			.compatible_instancetypes.all()
+
+		if groupconfig.exclInstances.count() != 0:
+			scitypes = scitypes.exclude(id__in=groupconfig.exclInstances.values('id')).order_by('aws_name')
+		log.debug("scitypes now: %s", scitypes)
+
+		self.fields['instance_type'] = forms.ChoiceField(choices=scitypes.values_list('id', 'aws_name'),
+														 widget=forms.Select(attrs={'class': 'form-control'}))
+
+		self.fields['purpose'] = forms.CharField(max_length=140, widget=forms.Textarea, validators=[alphanumeric])
+		self.fields['purpose'].widget.attrs.update({'class': 'blockForm'})
+		self.fields['purpose'].widget.attrs.update({'cols': '75'})
+		self.fields['purpose'].widget.attrs.update({'rows': '4'})
+		self.fields['cost_center'] = forms.CharField(max_length=7, min_length=6)
+		self.fields['cost_center'].widget.attrs.update({'class': 'blockForm'})
+		self.fields['core_nodes'] = forms.IntegerField(max_value=240, min_value=2, initial=10)
+		self.fields['core_nodes'].widget.attrs.update({'class': 'blockForm'})
+		self.fields['task_nodes'] = forms.IntegerField(max_value=240, min_value=0, initial=0)
+		self.fields['task_nodes'].widget.attrs.update({'class': 'blockForm'})
+		self.fields['on_demand'] = forms.BooleanField(required=False)
+		self.fields['on_demand'].widget.attrs.update({'class': 'blockForm', 'id': 'on_demand'})
+		self.fields['bid_price'] = forms.DecimalField(required=True, max_value=10.00, initial=2, min_value=0,
+													  decimal_places=2)
+		self.fields['bid_price'].widget.attrs.update({'class': 'blockForm', 'id': 'bid_price'})
+
+	# self.fields['cluster_type'] = forms.ChoiceField(choices=zones)
+
+
+	def clean(self):
+		cleaned_data = super(SelectEmrDetailsForm, self).clean()
+		if cleaned_data.get('on_demand'):
+			if 'bid_price' in self.errors:
+				del self.errors['bid_price']
+
+		return cleaned_data

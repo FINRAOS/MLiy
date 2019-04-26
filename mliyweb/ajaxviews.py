@@ -22,12 +22,12 @@ from django.views import generic
 from django.http import JsonResponse, Http404
 from django.shortcuts import get_object_or_404
 from django.contrib.auth.models import User
+from .models import Instance, BillingData, LastRefreshed, DisplayValue, Cluster
 from .settings import TIME_ZONE, AWS_DISCOUNT, MAX_INSTANCE_CACHE_AGE, AWS_REGION, DEFAULT_CHARGE_CODE
-from .models import Instance, BillingData, LastRefreshed
 from .prices.instances import getPrice, getInstanceData
-from .refresh import InstanceRefreshThread
+from .refresh import InstanceRefreshThread, ClusterRefreshThread
 from .dns import deleteDnsEntry, dnsDisplayName
-from .update import InstanceUpdateThread
+from .update import InstanceUpdateThread, ClusterUpdateThread
 from .launch import launchscoreboard
 from .utils import has_permission, remove_managergroup
 from ipware.ip import get_ip
@@ -47,6 +47,14 @@ class JsonView(generic.TemplateView):
 	def render_to_response(self, context, **response_kwargs):
 		return JsonResponse(self.get_data(context), safe=False)
 
+
+class ExtraEC2DisplayFields(JsonView):
+
+	@staticmethod
+	def get_data(context):
+		all_values = list(set( DisplayValue.objects.all().values_list('table_header', flat=True)))
+		data = {"display_values": all_values}
+		return data
 
 class RefreshView(JsonView):
 	"""
@@ -163,6 +171,117 @@ class BillingJson(JsonView):
 		return idata
 
 
+class ClustersJson(JsonView):
+	'''
+	Returns a json struct with the current clusters. If the last updated
+	time in the db is greater than the timeout, it returns the current data
+	and launches a background thread to refresh and prune the cluster list.
+
+	If called with ?forcerefresh as a url argument it'll refresh regardless
+	of the last updated time.
+	'''
+	logger = logging.getLogger(__name__)
+
+	# global instance refresh time stamp
+
+
+	def update_clusters(self):
+		updatethread = ClusterUpdateThread()
+		# if we're not using cloudpass we're in AWS, no need to run
+		# in the background
+		updatethread.start()  # literally call the code without running a thread
+
+	def get_data(self, context):
+		logger = self.logger
+		curtime = datetime.now(timezone('UTC'))
+		# now get latest from the db
+		try:
+			last_write = Cluster.objects.latest("updated_at")
+			logger.debug("Entering ClusterJson.get_data, last check was at {}, current is {}\n" \
+						 .format(last_write.updated_at, curtime))
+			if last_write is None \
+					or curtime > last_write.updated_at + timedelta(minutes=MAX_INSTANCE_CACHE_AGE) \
+					or 'forcerefresh' in self.request.GET:
+				self.update_clusters()
+
+			clusters = Cluster.objects.all()
+			idata = []
+			for cluster in clusters:
+				# return clusters of all members of the same group
+				try:
+					cluster_userid = cluster.userid.upper()
+					# logger.debug('eval: caller id: %s, cluster owner: %s, manager: %s',
+					#	self.request.user, cluster_userid, str(is_manager))
+					if (not has_permission(self.request.user, cluster_userid)):
+						continue  # not in same group, or not manager
+
+					inst = {}
+					if cluster.dns_url is None or cluster.dns_url == "":
+						inst['dns_url'] = "not_set_up"
+					else:
+						inst['dns_url'] = cluster.dns_url
+					inst['id'] = cluster.cluster_id
+					inst['purpose'] = cluster.purpose
+					inst['nodes_current'] = cluster.node_count
+					inst['nodes_total'] = cluster.node_max
+					inst['state'] = {'Name': cluster.state}
+					idata.append(inst)
+				except User.DoesNotExist:
+					logger.warn("user %s not in database.", cluster.userid)
+
+		except Cluster.DoesNotExist:
+			self.update_clusters()
+			idata = []
+
+		return idata
+
+class UserClustersJson(JsonView):
+	'''
+	user-specific view of instances
+	'''
+	def update_clusters(self):
+		'''
+		IMPORTANT:
+		copied verbatim from InstancesJson - centralize it next refactor
+		'''
+		updatethread = ClusterRefreshThread(self.request.user)
+		# if we're not using cloudpass we're in AWS, no need to run
+		# in the background
+		updatethread.start() # literally call the code without running a thread
+
+	def get_data(self, context):
+		try:
+			last_write = Cluster.objects.latest("updated_at")
+			curtime = datetime.now(timezone('UTC'))
+			if last_write is None \
+			or curtime > last_write.updated_at + timedelta(minutes=MAX_INSTANCE_CACHE_AGE)\
+			or 'forcerefresh' in self.request.GET:
+				self.update_clusters()
+
+			clusters = Cluster.objects.all()
+
+			idata = []
+			for cluster in clusters:
+				if cluster.userid.lower() == str(self.request.user).lower():
+					inst = {}
+					if cluster.dns_url is None or cluster.dns_url == "":
+						inst['dns_url'] = "not_set_up"
+					else:
+						inst['dns_url'] = cluster.dns_url
+					inst['id'] = cluster.cluster_id
+					inst['purpose'] = cluster.purpose
+					inst['nodes_current'] = cluster.node_count
+					inst['nodes_total'] = cluster.node_max
+					inst['master_ip'] = cluster.master_ip
+					inst['state'] = { 'Name' : cluster.state }
+					inst['software_config'] = cluster.software_config.name
+					idata.append(inst)
+		except Cluster.DoesNotExist:
+			idata = []
+
+		return idata
+
+
 class InstancesJson(JsonView):
 	"""
 	Returns a json struct with the current instances. If the last updated
@@ -201,6 +320,8 @@ class InstancesJson(JsonView):
 			idata = []
 			for instance in instances:
 				# return instances of all members of the same group
+				if instance.archived:  # Do not show terminated instances
+					continue
 				try:
 					instance_userid = instance.userid.upper()
 					# logger.debug('eval: caller id: %s, instance owner: %s, manager: %s',
@@ -217,7 +338,12 @@ class InstancesJson(JsonView):
 					inst['private_ip'] = instance.private_ip
 					inst['state'] = {'Name': instance.state}
 					inst['tags'] = list(instance.tag_set.values('Name', 'Value'))
-
+					try:
+						extra_values = list(DisplayValue.objects.filter(instance=instance))
+						for display_object in extra_values:
+							inst[display_object.table_header] = display_object.table_value
+					except DisplayValue.DoesNotExist:
+						logger.debug("No extra DisplayValues")
 					idata.append(inst)
 				except User.DoesNotExist:
 					logger.warn("user %s not in database.", instance.userid)
@@ -233,6 +359,8 @@ class UserInstancesJson(JsonView):
 	"""
 	user-specific view of instances
 	"""
+
+	logger = logging.getLogger(__name__)
 
 	@staticmethod
 	def update_instances():
@@ -256,6 +384,8 @@ class UserInstancesJson(JsonView):
 
 			idata = []
 			for instance in instances:
+				if instance.archived:  # Do not show terminated instances
+					continue
 				if instance.userid.lower() == str(self.request.user).lower():
 					inst = {'id': instance.instance_id, 'type': instance.instance_type,
 							'private_ip': instance.private_ip, 'state': {'Name': instance.state}}
@@ -272,7 +402,12 @@ class UserInstancesJson(JsonView):
 					inst['tags'] = list(instance.tag_set.values('Name', 'Value'))
 					inst['price'] = '{:.2}'.format(getPrice(instance.instance_type) * (1.0 - AWS_DISCOUNT))
 					inst['sc'] = instance.software_config.name
-
+					try:
+						extra_values = list(DisplayValue.objects.filter(instance=instance))
+						for display_object in extra_values:
+							inst[display_object.table_header] = display_object.table_value
+					except DisplayValue.DoesNotExist:
+						self.logger.debug("No extra DisplayValues")
 					idata.append(inst)
 		except Instance.DoesNotExist:
 			idata = []
@@ -527,6 +662,7 @@ class changeInstanceState(JsonView):
 					bill.charge_name = inst.current_bill.charge_name
 				else:
 					bill.charge_name = DEFAULT_CHARGE_CODE
+
 				bill.user = User.objects.get(username=inst.userid)
 				bill.price = getPrice(inst.instance_type) * (1.0 - AWS_DISCOUNT)
 				bill.start_time = datetime.now(timezone('UTC'))
@@ -593,9 +729,33 @@ class changeInstanceState(JsonView):
 					bill.save()
 				deleteDnsEntry(inst.instance_id, inst.private_ip)
 				inst.state = 'terminating'
+				inst.archived = True
 				inst.stop_at = datetime.now(timezone(TIME_ZONE))
 				inst.save()
 				
+			except Exception as e:
+				log.error(e)
+				return {'action': 'invalid', 'status': 'failed', 'exception': str(e)}
+		# ====================================
+		elif action == 'archive':
+			try:
+				# Check for CF
+				stack = inst.stack_id
+				if stack:
+					client = boto3.client("cloudformation",region_name=AWS_REGION)
+					client.delete_stack(StackName=stack.stack_id)
+					stack.delete()
+				inst.stack_id = None
+				inst.archived = True
+				inst.stop_at = datetime.now(timezone(TIME_ZONE))
+				deleteDnsEntry(inst.instance_id, inst.private_ip)
+
+				bill = inst.current_bill
+				if bill:
+					bill.ongoing = False
+					bill.end_time = datetime.now(timezone('UTC'))
+					bill.save()
+				inst.save()
 			except Exception as e:
 				log.error(e)
 				return {'action': 'invalid', 'status': 'failed', 'exception': str(e)}
@@ -612,6 +772,30 @@ class changeInstanceState(JsonView):
 		# add a short delay in return to try to address non-changing ui
 		time.sleep(2)
 		return {'action': action, 'status': 'ok'}
+
+
+class changeClusterState(JsonView):
+
+	def get_data(self,context):
+
+		log = logging.getLogger(__name__)
+		termid = self.kwargs['clusterid']
+		cluster = Cluster.objects.get(cluster_id = termid)
+		bill = cluster.current_bill
+		client = boto3.client('cloudformation', region_name=AWS_REGION)
+		client.delete_stack(StackName=cluster.stack_id)
+		if(bill!=None):
+					bill.ongoing = False
+					bill.end_time = datetime.now(timezone('UTC'))
+					bill.save()
+		if(cluster.state == 'TERMINATED' or cluster.state == 'COMPLETED' or cluster.state == 'FAILED'):
+			deleteDnsEntry(cluster.cluster_id,cluster.master_ip)
+			cluster.delete()
+		else:
+			deleteDnsEntry(cluster.cluster_id,cluster.master_ip)
+			cluster.delete()
+
+		return { 'action' : 'terminate', 'status' : 'ok'}
 
 
 class changeInstanceProgress(JsonView):

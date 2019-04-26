@@ -15,7 +15,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Change to Analyst home directory to install/configure 
+# Change to Analyst home directory to install/configure
 cd ~analyst
 
 # ODBC Driver Manager

@@ -20,8 +20,8 @@ cd ~analyst
 
 #Setup nss-pam-ldapd package
 cd nss-pam-ldapd-0.9.7
-./configure -q && make >/dev/null 
-make install 
+./configure -q && make >/dev/null 2>&1
+make install 2>&1
 ln -s /lib/libnss_ldap.so.2 /lib64/libnss_ldap.so.2
 ln -s /lib/security/pam_ldap.so /lib64/security/pam_ldap.so
 cat > /etc/init.d/nslcd <<'EOF'
@@ -169,6 +169,12 @@ END_HEREDOC
  
 fi
 
+if [[ ! -z $DISABLE_LDAP_CERT_VALIDATION && $DISABLE_LDAP_CERT_VALIDATION == 'true' ]]; then
+	TLS_REQCERT='tls_reqcert allow'
+else
+	TLS_REQCERT='tls_reqcert hard'
+fi
+
 cat > /etc/nslcd.conf <<EOF
 uid nslcd
 gid nslcd
@@ -179,7 +185,7 @@ base ${LDAP_BASE_DN}
 binddn ${LDAP_USER_BIND_DN}
 bindpw ${LDAP_USER_PASSWD}
 ssl no
-tls_reqcert hard
+${TLS_REQCERT}
 tls_cacertfile /etc/ssl/certs/ca-bundle.crt 
 pagesize 1000
 bind_timelimit 30
@@ -202,10 +208,10 @@ base ${LDAP_BASE_DN}
 binddn ${LDAP_USER_BIND_DN}
 bindpw ${LDAP_USER_PASSWD}
 ssl no
-tls_reqcert hard
+${TLS_REQCERT}
 tls_cacertfile /etc/ssl/certs/ca-bundle.crt 
 bind_timelimit 30
-bind_timelimit30
+bind_timelimit 30
 scope sub
 referrals no
 ${PAM_CONFIG}

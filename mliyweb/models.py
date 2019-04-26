@@ -49,11 +49,39 @@ class Key(models.Model):
 
 
 class Param(models.Model):
-	token = models.CharField(max_length=50, help_text="A short, simple toekn to be replaced")
+	token = models.CharField(max_length=50, help_text="A short, simple token to be replaced")
 	replacement = models.CharField(max_length=200, blank=True, help_text="The text that replaces the token")
 
 	def __str__(self):
 		return self.token + " = " + self.replacement
+
+class SecurityGroup(models.Model):
+	"""
+	Security groups for instance definitions
+	"""
+	sgid = models.CharField(max_length=30, unique=True,
+							help_text='AWS security group id - usually starts with sg_-something.')
+	name = models.CharField(max_length=30, help_text='Descriptive name; need to match what is in aws.')
+
+	def __str__(self):
+		return self.name
+
+class Cluster(models.Model):
+	cluster_id = models.CharField(max_length=50)
+	stack_id = models.CharField(max_length=255, blank=True, primary_key=True)
+	owner = models.CharField(max_length=30, blank=True)
+	userid = models.CharField(max_length=30, blank=True)
+	purpose = models.CharField(max_length=40, blank=True)
+	state = models.CharField(max_length=30)
+	master_ip = models.GenericIPAddressField()
+	node_count = models.PositiveSmallIntegerField(default=0, help_text="Number of Nodes in cluster")
+	node_max = models.PositiveSmallIntegerField(default=0, help_text="Number of Nodes desired in cluster")
+	task_node = models.PositiveIntegerField(default=0, help_text="Number of task nodes desired in cluster")
+	current_bill = models.ForeignKey('BillingData',null=True)
+	dns_url = models.CharField(max_length=250, blank=True)
+	on_demand = models.BooleanField(default=False, help_text="This will determine the cluster's availability and pricing model.")
+	updated_at = models.DateTimeField()
+	software_config = models.ForeignKey('Software_Config', help_text='Software config of the Cluster.',related_name='cluster_software_config', null=True, blank=True)
 
 class CloudFormation(models.Model):
 	name = models.CharField(max_length=50)
@@ -74,6 +102,8 @@ class Software_Config(models.Model):
 	Defines instance configurations that can be launched.
 	"""
 	name = models.CharField(max_length=50, help_text="A short, simple name to describe the configuration.")
+
+	emr_config = models.BooleanField(default=False, help_text='If enabled, the software config will be used for EMR clusters.')
 	user_data = models.ForeignKey(UserDataScript,help_text="Instance user data to be set when instance is to be instantiated.",null=True,blank=True)
 	cloud_formation = models.ForeignKey(CloudFormation,help_text="Instance user data to be set when instance is to be instantiated.",null=True,blank=True)
 	
@@ -91,11 +121,20 @@ i.e. 'Home Directory Size' or something")
 	compatible_instancetypes = models.ManyToManyField('mliyweb.InstanceType')
 	permitted_groups = models.ManyToManyField('GroupConfig', blank=True)
 	instance_name = models.CharField(max_length=30, help_text="The name to be assigned the instance in the name tag.")
+
 	html_description = models.TextField(
 		help_text='This will appear next to the sw config to the users as a description. <strong>All HTML is valid here</strong>.',
 		default="No description.")
 	has_progress_bar = models.BooleanField(default=False, 
 		help_text='if enabled, app will expect a curl command during the boot program to update the progress bar')
+	master_security_group = models.ForeignKey(SecurityGroup, help_text='EMR managed master security group', related_name='master_security_group',null=True, blank=True)
+	slave_security_group = models.ForeignKey(SecurityGroup, help_text='EMR managed slave security group', related_name='slave_security_group',null=True, blank=True)
+	additional_master_security_groups = models.ManyToManyField(SecurityGroup, related_name='additional_master_security_groups', blank=True)
+	additional_slave_security_groups = models.ManyToManyField(SecurityGroup, related_name='additional_slave_security_groups', blank=True)
+
+	custom_url_format = models.TextField(
+		help_text='Specify custom URL format. {{{ URL }}} will be replaced with the URL or IP. e.g. jdbc:hive//{{{ URL }}}/ will become jdbc:hive//my.dns.url/. If the field is blank, the format will be just the URL/IP by default. ',
+		blank=True)
 
 	def __str__(self):
 		return self.name
@@ -134,9 +173,22 @@ class Instance(models.Model):
 	stop_at = models.DateTimeField(null=True, blank=True)
 	progress_status = models.CharField(default="done", max_length=40)
 	progress_integer = models.PositiveSmallIntegerField(default=0)
+	lock_controls = models.BooleanField(default=False)
+	archived = models.BooleanField(default=False)
 
 	def __str__(self):
 		return self.instance_id
+
+class DisplayValue(models.Model):
+	#This 
+	table_header= models.CharField(max_length=20, help_text="Data Key")
+	table_value = models.TextField(help_text="Data Value")
+	instance = models.ForeignKey(Instance,help_text="The instance that this is a field of")
+	class Meta:
+		unique_together = (("table_header", "instance"),)
+	
+	def __str__(self):
+		return self.instance.instance_id + ":" + self.table_header + " " + self.table_value
 
 
 class Tag(models.Model):
@@ -161,18 +213,6 @@ class InstanceType(models.Model):
 
 	def __str__(self):
 		return self.aws_name
-
-
-class SecurityGroup(models.Model):
-	"""
-	Security groups for instance definitions
-	"""
-	sgid = models.CharField(max_length=30, unique=True,
-							help_text='AWS security group id - usually starts with sg_-something.')
-	name = models.CharField(max_length=30, help_text='Descriptive name; need to match what is in aws.')
-
-	def __str__(self):
-		return self.name
 
 
 class SingletonModel(models.Model):
@@ -215,6 +255,7 @@ class GroupConfig(models.Model):
 	"""
 	group = models.ForeignKey(Group)
 	name = models.CharField(max_length=30)
+	emr_access = models.BooleanField(default=False)
 	AD_groupname = models.CharField(max_length=75,
 									blank=True,
 									help_text='If set and a new user in this AD group hits the site the will be automatically provisioned into this group.')

@@ -1,190 +1,488 @@
-[{
-	"model": "auth.group",
-	"pk": 1,
-	"fields": {
-		"name": "manager",
-		"permissions": []
+[
+	{
+		"model": "auth.group",
+		"pk": 1,
+		"fields": {
+			"name": "manager",
+			"permissions": []
+		}
+	},
+	{
+		"model": "mliyweb.param",
+		"pk": 1,
+		"fields": {
+			"token": "SOURCE_BUCKET",
+			"replacement": "S3 Location of MLiy packages and supporting files without the s3 prefix"
+		}
+	},
+	{
+		"model": "mliyweb.param",
+		"pk": 2,
+		"fields": {
+			"token": "SOURCE_SCRIPT",
+			"replacement": "install_ec2_MLiy.sh"
+		}
+	},
+	{
+		"model": "mliyweb.param",
+		"pk": 3,
+		"fields": {
+			"token": "SOURCE_PACKAGE",
+			"replacement": "mliyweb.tar.gz"
+		}
+	},
+	{
+		"model": "mliyweb.param",
+		"pk": 4,
+		"fields": {
+			"token": "EBS_DEVICE",
+			"replacement": "/dev/xvdz"
+		}
+	},
+	{
+		"model": "mliyweb.param",
+		"pk": 5,
+		"fields": {
+			"token": "TIME_ZONE",
+			"replacement": "Set Time Zone. See https://en.wikipedia.org/wiki/List_of_tz_database_time_zones"
+		}
+	},
+	{
+		"model": "mliyweb.param",
+		"pk": 6,
+		"fields": {
+			"token": "MANAGER_HOSTNAME",
+			"replacement": "The DNS resolvable hostname or IP address for MLiy Website"
+		}
+	},
+	{
+		"model": "mliyweb.param",
+		"pk": 7,
+		"fields": {
+			"token": "CRAN_REPO",
+			"replacement": "http://cran.r-project.org/"
+		}
+	},
+	{
+		"model": "mliyweb.param",
+		"pk": 8,
+		"fields": {
+			"token": "PyPi_REPO",
+			"replacement": "URL for Python Repo. Keep it blank to use pypi.org"
+		}
+	},
+	{
+		"model": "mliyweb.param",
+		"pk": 9,
+		"fields": {
+			"token": "LDAP_TYPE",
+			"replacement": "Possible Values: AD or openLDAP"
+		}
+	},
+	{
+		"model": "mliyweb.param",
+		"pk": 10,
+		"fields": {
+			"token": "LDAP_HOST_NAME",
+			"replacement": "LDAP Server Hostname/IP"
+		}
+	},
+	{
+		"model": "mliyweb.param",
+		"pk": 11,
+		"fields": {
+			"token": "LDAP_USER_ID",
+			"replacement": "LDAP user id used to connect to ldap server"
+		}
+	},
+	{
+		"model": "mliyweb.param",
+		"pk": 12,
+		"fields": {
+			"token": "LDAP_USER_PASSWD_CMD",
+			"replacement": "Command to execute in order to obtain password."
+		}
+	},
+	{
+		"model": "mliyweb.param",
+		"pk": 13,
+		"fields": {
+			"token": "LDAP_USER_BIND_DN",
+			"replacement": "Distinguish Name of Connecting User"
+		}
+	},
+	{
+		"model": "mliyweb.param",
+		"pk": 14,
+		"fields": {
+			"token": "LDAP_BASE_DN",
+			"replacement": "LDAP Base DN"
+		}
+	},
+	{
+		"model": "mliyweb.param",
+		"pk": 15,
+		"fields": {
+			"token": "LDAP_AUTHZ_GROUP",
+			"replacement": "Member of group authorized to access"
+		}
+	},
+	{
+		"model": "mliyweb.param",
+		"pk": 16,
+		"fields": {
+			"token": "WILDCARD_PUBLIC_CERT",
+			"replacement": "Name of public cert file in tar.gz"
+		}
+	},
+	{
+		"model": "mliyweb.param",
+		"pk": 17,
+		"fields": {
+			"token": "WILDCARD_PRIVATE_CERT",
+			"replacement": "Name of private key file in tar.gz"
+		}
+	},
+	{
+		"model": "mliyweb.param",
+		"pk": 18,
+		"fields": {
+			"token": "WILDCARD_CERTS_ARCHIVE",
+			"replacement": "tar.gz containing SSL cert"
+		}
+	},
+	{
+		"model": "mliyweb.param",
+		"pk": 19,
+		"fields": {
+			"token": "CUSTOM_ROOT_CERTS",
+			"replacement": "Custom Root Cert to add to Linux trust store and Java Key Store"
+		}
+	},
+	{
+		"model": "mliyweb.param",
+		"pk": 20,
+		"fields": {
+			"token": "PROXY_SCRIPT",
+			"replacement": "The name of the proxy script injected in the scripts folder that set proxy variables"
+		}
+	},
+	{
+		"model": "mliyweb.param",
+		"pk": 21,
+		"fields": {
+			"token": "DISABLE_LDAP_CERT_VALIDATION",
+			"replacement": "Disable LDAP SSL Cert Validation or not. One of two values: true or false"
+		}
+	},
+	{
+		"model": "mliyweb.param",
+		"pk": 22,
+		"fields": {
+			"token": "paramRunSecretsCMD",
+			"replacement": "Command to run secrets manager, used in step script"
+		}
+	},
+	{
+		"model": "mliyweb.param",
+		"pk": 23,
+		"fields": {
+			"token": "paramInstallSecretsCMD",
+			"replacement": "Command to install a secrets manager, used in the bootstrap script"
+		}
+	},
+	{
+		"model": "mliyweb.param",
+		"pk": 24,
+		"fields": {
+			"token": "paramYumServerPrefix",
+			"replacement": "Yum Server Prefix"
+		}
+	},
+	{
+		"model": "mliyweb.param",
+		"pk": 25,
+		"fields": {
+			"token": "paramBootstrapScript",
+			"replacement": "S3 Prefix within paramInstallBucket containing bootstrap script: PREFIX/emr/spark/bootstrap_spark.sh"
+		}
+	},
+	{
+		"model": "mliyweb.param",
+		"pk": 26,
+		"fields": {
+			"token": "paramStepScript",
+			"replacement": "S3 Prefix within paramInstallBucket containing step script: PREFIX/emr/spark/step_ndp.sh"
+		}
+	},
+	{
+		"model": "mliyweb.param",
+		"pk": 27,
+		"fields": {
+			"token": "paramCertFile",
+			"replacement": "S3 URL for Zip file containing SSL Cert files"
+		}
+	},
+	{
+		"model": "mliyweb.param",
+		"pk": 28,
+		"fields": {
+			"token": "paramInstallBucket",
+			"replacement": "Bucket containing installation scripts and artifacts: s3://mys3bucket"
+		}
+	},
+	{
+		"model": "mliyweb.param",
+		"pk": 29,
+		"fields": {
+			"token": "paramYumServerPort",
+			"replacement": "Yum Server Port Number"
+		}
+	},
+	{
+		"model": "mliyweb.param",
+		"pk": 30,
+		"fields": {
+			"token": "paramYumServerHost",
+			"replacement": "Yum Server DNS or IP address"
+		}
+	},
+	{
+		"model": "mliyweb.param",
+		"pk": 31,
+		"fields": {
+			"token": "paramAWSProxyPort",
+			"replacement": "Port Number to use for AWS Proxy"
+		}
+	},
+	{
+		"model": "mliyweb.param",
+		"pk": 32,
+		"fields": {
+			"token": "paramAWSProxyHost",
+			"replacement": "DNS or IP address of AWS Proxy"
+		}
+	},
+	{
+		"model": "mliyweb.param",
+		"pk": 33,
+		"fields": {
+			"token": "paramLdapGroupRdn",
+			"replacement": "LDAP Authorization Group Relative Distinguished Name"
+		}
+	},
+	{
+		"model": "mliyweb.param",
+		"pk": 34,
+		"fields": {
+			"token": "paramLdapGroup",
+			"replacement": "LDAP Authorization Group"
+		}
+	},
+	{
+		"model": "mliyweb.param",
+		"pk": 35,
+		"fields": {
+			"token": "paramLdapSvcUser",
+			"replacement": "LDAP Service User"
+		}
+	},
+	{
+		"model": "mliyweb.param",
+		"pk": 36,
+		"fields": {
+			"token": "paramLdapSvcRdn",
+			"replacement": "LDAP Service User Relative Distinguished Name"
+		}
+	},
+	{
+		"model": "mliyweb.param",
+		"pk": 37,
+		"fields": {
+			"token": "paramLdapUserRdn",
+			"replacement": "LDAP User Relative Distinguished Name"
+		}
+	},
+	{
+		"model": "mliyweb.param",
+		"pk": 38,
+		"fields": {
+			"token": "paramLdapBaseDn",
+			"replacement": "LDAP Base Distinguished Name"
+		}
+	},
+	{
+		"model": "mliyweb.param",
+		"pk": 39,
+		"fields": {
+			"token": "paramLdapIp",
+			"replacement": "LDAP IP Address"
+		}
+	},
+	{
+		"model": "mliyweb.param",
+		"pk": 40,
+		"fields": {
+			"token": "paramLdapFqdn",
+			"replacement": "LDAP Fully Qualified Domain Name"
+		}
+	},
+	{
+		"model": "mliyweb.param",
+		"pk": 41,
+		"fields": {
+			"token": "paramYarnLogURI",
+			"replacement": "Bucket to store EMR Yarn Log Files"
+		}
+	},
+	{
+		"model": "mliyweb.param",
+		"pk": 42,
+		"fields": {
+			"token": "paramLogURI",
+			"replacement": "Bucket to store EMR Log Files"
+		}
+	},
+	{
+		"model": "mliyweb.param",
+		"pk": 43,
+		"fields": {
+			"token": "paramSecurityConfiguration",
+			"replacement": "Name of the Security Configuration to apply"
+		}
+	},
+	{
+		"model": "mliyweb.param",
+		"pk": 44,
+		"fields": {
+			"token": "paramServiceRole",
+			"replacement": "EMR Service Role"
+		}
+	},
+	{
+		"model": "mliyweb.param",
+		"pk": 45,
+		"fields": {
+			"token": "paramJobFlowRole",
+			"replacement": "EC2 Instance Role"
+		}
+	},
+	{
+		"model": "mliyweb.param",
+		"pk": 46,
+		"fields": {
+			"token": "paramJupyterBucket",
+			"replacement": "Bucket containing user home folders and Jupyter notebooks"
+		}
+	},
+	{
+		"model": "mliyweb.param",
+		"pk": 47,
+		"fields": {
+			"token": "paramReleaseLabel",
+			"replacement": "EMR Release Version"
+		}
+	},
+	{
+		"model": "mliyweb.param",
+		"pk": 48,
+		"fields": {
+			"token": "paramSsmDocument",
+			"replacement": "Name of the AWS SSM Document allowing download of jar/zip file to EMR nodes"
+		}
+	},
+	{
+		"model": "mliyweb.param",
+		"pk": 49,
+		"fields": {
+			"token": "paramMliyTargzFile",
+			"replacement": "S3 Prefix within paramInstallBucket containing MLiy tar.gz: PREFIX/mliyweb.tar.gz"
+		}
+	},
+	{
+		"model": "mliyweb.software_config",
+		"pk": 1,
+		"fields": {
+			"name": "MLiyDefault",
+			"user_data": null,
+			"cloud_formation": null,
+			"ami_id": "ami-id",
+			"addtl_volume_kms_key": "",
+			"addtl_vol_dev_path": "/dev/xvdz",
+			"addtl_vol_default_size": 1024,
+			"addtl_vol_description": "Encrypted Home Directory Size",
+			"instance_name": "AWSLXMLIYTST",
+			"html_description": "No description.",
+			"has_progress_bar": true,
+			"params": [],
+			"compatible_instancetypes": [
+				1
+			],
+			"permitted_groups": [
+				1
+			]
+		}
+	},
+	{
+		"model": "mliyweb.securitygroup",
+		"pk": 1,
+		"fields": {
+			"sgid": "sg-11111111",
+			"name": "MLiy_APP"
+		}
+	},
+	{
+		"model": "mliyweb.securitygroup",
+		"pk": 2,
+		"fields": {
+			"sgid": "sg-00000000",
+			"name": "sample-group1"
+		}
+	},
+	{
+		"model": "mliyweb.securitygroup",
+		"pk": 3,
+		"fields": {
+			"sgid": "sg-00020002",
+			"name": "sample-group2"
+		}
+	},
+	{
+		"model": "mliyweb.securitygroup",
+		"pk": 4,
+		"fields": {
+			"sgid": "sg-03000300",
+			"name": "sample-group3"
+		}
+	},
+	{
+		"model": "mliyweb.lastrefreshed",
+		"pk": 1,
+		"fields": {
+			"updated_at": "2018-06-11T20:09:31.274Z"
+		}
+	},
+	{
+		"model": "mliyweb.groupconfig",
+		"pk": 1,
+		"fields": {
+			"group": 1,
+			"name": "MLiySampleConfig",
+			"AD_groupname": "",
+			"override_instance_name": "AWSLXMLiyTST",
+			"ags": "MLiy",
+			"cost_center": "PROJECT001",
+			"sdlc": "DEV",
+			"key_name": "APP_MLiy_KEY",
+			"iam_instance_profile_name": "APP_MLiy_CLIENT",
+			"exclInstances": [],
+			"default_security_grps": [
+				1,
+				2,
+				3,
+				4
+			],
+			"optional_security_grps": []
+		}
 	}
-},{
-	"model": "mliyweb.param",
-	"pk": 1,
-	"fields": {
-		"token": "SOURCE_BUCKET",
-		"replacement": ""
-	}
-}, {
-	"model": "mliyweb.param",
-	"pk": 2,
-	"fields": {
-		"token": "SOURCE_SCRIPT",
-		"replacement": "install_ec2_MLiy.sh"
-	}
-}, {
-	"model": "mliyweb.param",
-	"pk": 3,
-	"fields": {
-		"token": "SOURCE_PACKAGE",
-		"replacement": "mliyweb.tar.gz"
-	}
-}, {
-	"model": "mliyweb.param",
-	"pk": 4,
-	"fields": {
-		"token": "EBS_DEVICE",
-		"replacement": "/dev/xvdz"
-	}
-}, {
-	"model": "mliyweb.param",
-	"pk": 5,
-	"fields": {
-		"token": "TIME_ZONE",
-		"replacement": "America/New_York"
-	}
-}, {
-	"model": "mliyweb.param",
-	"pk": 6,
-	"fields": {
-		"token": "MANAGER_HOSTNAME",
-		"replacement": "https://"
-	}
-}, {
-	"model": "mliyweb.param",
-	"pk": 7,
-	"fields": {
-		"token": "CRAN_REPO",
-		"replacement": "http://cran.us.r-project.org"
-	}
-}, {
-	"model": "mliyweb.param",
-	"pk": 8,
-	"fields": {
-		"token": "PyPi_REPO",
-		"replacement": ""
-	}
-}, {
-	"model": "mliyweb.param",
-	"pk": 9,
-	"fields": {
-		"token": "LDAP_HOST_NAME",
-		"replacement": ""
-	}
-}, {
-	"model": "mliyweb.param",
-	"pk": 10,
-	"fields": {
-		"token": "LDAP_USER_ID",
-		"replacement": ""
-	}
-}, {
-	"model": "mliyweb.param",
-	"pk": 11,
-	"fields": {
-		"token": "LDAP_USER_PASSWD_CMD",
-		"replacement": ""
-	}
-}, {
-	"model": "mliyweb.param",
-	"pk": 12,
-	"fields": {
-		"token": "LDAP_BASE_DN",
-		"replacement": ""
-	}
-}, {
-	"model": "mliyweb.param",
-	"pk": 13,
-	"fields": {
-		"token": "WILDCARD_PUBLIC_CERT",
-		"replacement": ""
-	}
-}, {
-	"model": "mliyweb.param",
-	"pk": 14,
-	"fields": {
-		"token": "WILDCARD_PRIVATE_CERT",
-		"replacement": ""
-	}
-}, {
-	"model": "mliyweb.param",
-	"pk": 15,
-	"fields": {
-		"token": "WILDCARD_CERTS_ARCHIVE",
-		"replacement": ""
-	}
-}, {
-	"model": "mliyweb.param",
-	"pk": 16,
-	"fields": {
-		"token": "CUSTOM_ROOT_CERTS",
-		"replacement": ""
-	}
-}, {
-	"model": "mliyweb.software_config",
-	"pk": 1,
-	"fields": {
-		"name": "TestConfig",
-		"user_data": null,
-		"cloud_formation": null,
-		"ami_id": "ami-id",
-		"addtl_volume_kms_key": "",
-		"addtl_vol_dev_path": "/dev/xvdz",
-		"addtl_vol_default_size": 100,
-		"addtl_vol_description": "Encrypted Home Directory Size",
-		"instance_name": "AWSLXMLIYTST",
-		"html_description": "No description.",
-		"has_progress_bar": false,
-		"params": [],
-		"compatible_instancetypes": [1],
-		"permitted_groups": [1]
-	}
-}, {
-	"model": "mliyweb.securitygroup",
-	"pk": 1,
-	"fields": {
-		"sgid": "sg-11111111",
-		"name": "MLiy_APP"
-	}
-}, {
-	"model": "mliyweb.securitygroup",
-	"pk": 2,
-	"fields": {
-		"sgid": "sg-00000000",
-		"name": "sample-group1"
-	}
-}, {
-	"model": "mliyweb.securitygroup",
-	"pk": 3,
-	"fields": {
-		"sgid": "sg-00020002",
-		"name": "sample-group2"
-	}
-}, {
-	"model": "mliyweb.securitygroup",
-	"pk": 4,
-	"fields": {
-		"sgid": "sg-03000300",
-		"name": "sample-group3"
-	}
-}, {
-	"model": "mliyweb.lastrefreshed",
-	"pk": 1,
-	"fields": {
-		"updated_at": "2018-06-11T20:09:31.274Z"
-	}
-}, {
-	"model": "mliyweb.groupconfig",
-	"pk": 1,
-	"fields": {
-		"group": 1,
-		"name": "MLiyTestConfig",
-		"AD_groupname": "",
-		"override_instance_name": "AWSLXMLiyTST",
-		"ags": "MLiy",
-		"cost_center": "PROJECT001",
-		"sdlc": "DEV",
-		"key_name": "APP_MLiy_KEY",
-		"iam_instance_profile_name": "APP_MLiy_CLIENT",
-		"exclInstances": [],
-		"default_security_grps": [1, 2, 3, 4],
-		"optional_security_grps": []
-	}
-}]
+]

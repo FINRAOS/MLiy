@@ -40,7 +40,7 @@ limitations under the License. -->
                 </tr>
                 <tr>
                   <td>State</td>
-                  {% if object.progress_status == 'done' %}
+                  {% if object.progress_status == 'done' or object.state == 'out of sync' %}
                   <td>{{ object.state }}</td>
                   {% else %}
                   <td>{{ object.progress_status }}: {{object.progress_integer}}% Done</td>
@@ -89,25 +89,30 @@ limitations under the License. -->
                   </td>
                 </tr>
                 {% endif %}
-                
+
               </tbody>
             </table>
           </div>
-          {% if object.state == 'stopped'%}
-            <input type="button" value="Start this Instance" onclick=startInst("{{ object.instance_id }}") />
-            {% if object.userid|lower == user|lower or user.is_staff%}
-              <input type="button" value="Terminate this Instance" onclick=termInst("{{ object.instance_id }}") />
-            {% endif %}
-          
-          {% elif object.state == 'running' %}
-              <input type="button" value="Stop this Instance" onclick=stopInst("{{ object.instance_id }}") />
-              <input type="button" value="Reboot this Instance" onclick=rbInst("{{ object.instance_id }}") />
-              {% if object.userid|lower == user|lower or user.is_staff%}
+          {% if user.is_staff or not object.lock_controls %}
+            {% if object.state == 'stopped' %}
+              <input type="button" value="Start this Instance" onclick=startInst("{{ object.instance_id }}") />
+              {% if object.userid|lower == user|lower or user.is_staff %}
                 <input type="button" value="Terminate this Instance" onclick=termInst("{{ object.instance_id }}") />
               {% endif %}
+            {% elif object.state == 'running' %}
+              <input type="button" value="Stop this Instance" onclick=stopInst("{{ object.instance_id }}") />
+              <input type="button" value="Reboot this Instance" onclick=rbInst("{{ object.instance_id }}") />
+              {% if object.userid|lower == user|lower or user.is_staff %}
+                <input type="button" value="Terminate this Instance" onclick=termInst("{{ object.instance_id }}") />
+              {% endif %}
+            {% elif object.state == 'out of sync' and object.archived is False %}
+              {% if object.userid|lower == user|lower or user.is_staff %}
+                <input type="button" value="Archive this Instance" onclick=archInst("{{ object.instance_id }}") />
+              {% endif %}
+            {% endif %}
           {% endif %}
-          
-          
+
+
 <!-- Uncomment for some fun UI testing stuff -->
 <!--
           <input type="button" value="Generate Error Message" onclick=instanceCmd("{{ object.instance_id }}",'bork') />
@@ -121,4 +126,4 @@ limitations under the License. -->
 
 {% block javascript %}
 <script src="/static/js/mliy-instancecontrols.js"></script>
-{% endblock %} 
+{% endblock %}

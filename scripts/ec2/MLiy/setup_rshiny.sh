@@ -23,6 +23,10 @@ echo "start shiny-server" >> /etc/rc.d/rc.local
 echo '# Instruct Shiny Server to run applications as the user "analyst"
 run_as analyst;
 
+# Increase the time for app to initialize
+app_init_timeout 1200;
+app_idle_timeout 600;
+
 # Define a server that listens on port 3838
 server {
   listen 3838;

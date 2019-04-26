@@ -1,1 +1,263 @@
-[{"model": "mliyweb.instancetype", "pk": 1, "fields": {"aws_name": "c4.xlarge", "description": "AWS C4 Xlarge", "ebs_optimizable": false}}, {"model": "mliyweb.instancetype", "pk": 2, "fields": {"aws_name": "r3.2xlarge", "description": "R3 2xlarge", "ebs_optimizable": true}}, {"model": "mliyweb.instancetype", "pk": 3, "fields": {"aws_name": "r3.4xlarge", "description": "R3 4Xlarge", "ebs_optimizable": true}}, {"model": "mliyweb.instancetype", "pk": 4, "fields": {"aws_name": "r3.8xlarge", "description": "R3 8Xlarge (expensive!)", "ebs_optimizable": false}}, {"model": "mliyweb.instancetype", "pk": 5, "fields": {"aws_name": "c4.large", "description": "c4 large", "ebs_optimizable": false}}, {"model": "mliyweb.instancetype", "pk": 6, "fields": {"aws_name": "c4.4xlarge", "description": "C4 xlarge", "ebs_optimizable": false}}, {"model": "mliyweb.instancetype", "pk": 7, "fields": {"aws_name": "t2.micro", "description": "Micro variable-performance instance", "ebs_optimizable": false}}, {"model": "mliyweb.instancetype", "pk": 8, "fields": {"aws_name": "t2.small", "description": "Small variable-performance instance", "ebs_optimizable": false}}, {"model": "mliyweb.instancetype", "pk": 9, "fields": {"aws_name": "t2.large", "description": "Large variable performance instance", "ebs_optimizable": false}}, {"model": "mliyweb.instancetype", "pk": 10, "fields": {"aws_name": "m4.large", "description": "m4.large", "ebs_optimizable": false}}, {"model": "mliyweb.instancetype", "pk": 11, "fields": {"aws_name": "m4.xlarge", "description": "m4.xlarge", "ebs_optimizable": false}}, {"model": "mliyweb.instancetype", "pk": 12, "fields": {"aws_name": "m4.2xlarge", "description": "m4.2xlarge", "ebs_optimizable": false}}, {"model": "mliyweb.instancetype", "pk": 13, "fields": {"aws_name": "m4.4xlarge", "description": "m4.4xlarge", "ebs_optimizable": false}}, {"model": "mliyweb.instancetype", "pk": 14, "fields": {"aws_name": "m4.10xlarge", "description": "m4.10xlarge", "ebs_optimizable": false}}, {"model": "mliyweb.instancetype", "pk": 15, "fields": {"aws_name": "d2.xlarge", "description": "d2.xlarge", "ebs_optimizable": false}}, {"model": "mliyweb.instancetype", "pk": 16, "fields": {"aws_name": "d2.2xlarge", "description": "d2.2xlarge", "ebs_optimizable": false}}, {"model": "mliyweb.instancetype", "pk": 17, "fields": {"aws_name": "d2.4xlarge", "description": "d2.4xlarge", "ebs_optimizable": false}}, {"model": "mliyweb.instancetype", "pk": 18, "fields": {"aws_name": "d2.8xlarge", "description": "d2.8xlarge", "ebs_optimizable": false}}, {"model": "mliyweb.instancetype", "pk": 19, "fields": {"aws_name": "c4.8xlarge", "description": "c4.8xlarge", "ebs_optimizable": false}}, {"model": "mliyweb.instancetype", "pk": 20, "fields": {"aws_name": "r3.large", "description": "small (2cpu, 15gb ram, r3.l)", "ebs_optimizable": false}}, {"model": "mliyweb.instancetype", "pk": 21, "fields": {"aws_name": "r3.xlarge", "description": "medium (4cpu, 30gb ram, r3.xl)", "ebs_optimizable": true}}, {"model": "mliyweb.instancetype", "pk": 22, "fields": {"aws_name": "g2.2xlarge", "description": "1 GPU 8 vCPU 15 GB RAM 1 60 GB SSD", "ebs_optimizable": true}}, {"model": "mliyweb.instancetype", "pk": 23, "fields": {"aws_name": "g2.8xlarge", "description": "4 GPU 32 vCPU 60 GB RAM 2 120 GB SSD", "ebs_optimizable": false}}, {"model": "mliyweb.instancetype", "pk": 24, "fields": {"aws_name": "p2.xlarge", "description": "1GPU 4vCPU 61GB RAM 12GB GPU RAM 2,496 Parellel Processing Cores $0.90/hr", "ebs_optimizable": true}}, {"model": "mliyweb.instancetype", "pk": 25, "fields": {"aws_name": "p2.8xlarge", "description": "8GPU 32vCPU 488GB RAM 96GB GPU RAM 19,968 Parellel Processing Cores $7.20/hr", "ebs_optimizable": true}}, {"model": "mliyweb.instancetype", "pk": 26, "fields": {"aws_name": "p2.16xlarge", "description": "16GPU 64vCPU 732GB RAM 192GB GPU RAM 39,936 Parellel Processing Cores $14.40/hr", "ebs_optimizable": true}}]
+[
+	{
+		"model": "mliyweb.instancetype",
+		"pk": 1,
+		"fields": {
+			"aws_name": "c4.xlarge",
+			"description": "AWS C4 Xlarge",
+			"ebs_optimizable": false
+		}
+	},
+	{
+		"model": "mliyweb.instancetype",
+		"pk": 2,
+		"fields": {
+			"aws_name": "r3.2xlarge",
+			"description": "R3 2xlarge",
+			"ebs_optimizable": true
+		}
+	},
+	{
+		"model": "mliyweb.instancetype",
+		"pk": 3,
+		"fields": {
+			"aws_name": "r3.4xlarge",
+			"description": "R3 4Xlarge",
+			"ebs_optimizable": true
+		}
+	},
+	{
+		"model": "mliyweb.instancetype",
+		"pk": 4,
+		"fields": {
+			"aws_name": "r3.8xlarge",
+			"description": "R3 8Xlarge (expensive!)",
+			"ebs_optimizable": false
+		}
+	},
+	{
+		"model": "mliyweb.instancetype",
+		"pk": 5,
+		"fields": {
+			"aws_name": "c4.large",
+			"description": "c4 large",
+			"ebs_optimizable": false
+		}
+	},
+	{
+		"model": "mliyweb.instancetype",
+		"pk": 6,
+		"fields": {
+			"aws_name": "c4.4xlarge",
+			"description": "C4 xlarge",
+			"ebs_optimizable": false
+		}
+	},
+	{
+		"model": "mliyweb.instancetype",
+		"pk": 7,
+		"fields": {
+			"aws_name": "t2.micro",
+			"description": "Micro variable-performance instance",
+			"ebs_optimizable": false
+		}
+	},
+	{
+		"model": "mliyweb.instancetype",
+		"pk": 8,
+		"fields": {
+			"aws_name": "t2.small",
+			"description": "Small variable-performance instance",
+			"ebs_optimizable": false
+		}
+	},
+	{
+		"model": "mliyweb.instancetype",
+		"pk": 9,
+		"fields": {
+			"aws_name": "t2.large",
+			"description": "Large variable performance instance",
+			"ebs_optimizable": false
+		}
+	},
+	{
+		"model": "mliyweb.instancetype",
+		"pk": 10,
+		"fields": {
+			"aws_name": "m4.large",
+			"description": "m4.large",
+			"ebs_optimizable": false
+		}
+	},
+	{
+		"model": "mliyweb.instancetype",
+		"pk": 11,
+		"fields": {
+			"aws_name": "m4.xlarge",
+			"description": "m4.xlarge",
+			"ebs_optimizable": false
+		}
+	},
+	{
+		"model": "mliyweb.instancetype",
+		"pk": 12,
+		"fields": {
+			"aws_name": "m4.2xlarge",
+			"description": "m4.2xlarge",
+			"ebs_optimizable": false
+		}
+	},
+	{
+		"model": "mliyweb.instancetype",
+		"pk": 13,
+		"fields": {
+			"aws_name": "m4.4xlarge",
+			"description": "m4.4xlarge",
+			"ebs_optimizable": false
+		}
+	},
+	{
+		"model": "mliyweb.instancetype",
+		"pk": 14,
+		"fields": {
+			"aws_name": "m4.10xlarge",
+			"description": "m4.10xlarge",
+			"ebs_optimizable": false
+		}
+	},
+	{
+		"model": "mliyweb.instancetype",
+		"pk": 15,
+		"fields": {
+			"aws_name": "d2.xlarge",
+			"description": "d2.xlarge",
+			"ebs_optimizable": false
+		}
+	},
+	{
+		"model": "mliyweb.instancetype",
+		"pk": 16,
+		"fields": {
+			"aws_name": "d2.2xlarge",
+			"description": "d2.2xlarge",
+			"ebs_optimizable": false
+		}
+	},
+	{
+		"model": "mliyweb.instancetype",
+		"pk": 17,
+		"fields": {
+			"aws_name": "d2.4xlarge",
+			"description": "d2.4xlarge",
+			"ebs_optimizable": false
+		}
+	},
+	{
+		"model": "mliyweb.instancetype",
+		"pk": 18,
+		"fields": {
+			"aws_name": "d2.8xlarge",
+			"description": "d2.8xlarge",
+			"ebs_optimizable": false
+		}
+	},
+	{
+		"model": "mliyweb.instancetype",
+		"pk": 19,
+		"fields": {
+			"aws_name": "c4.8xlarge",
+			"description": "c4.8xlarge",
+			"ebs_optimizable": false
+		}
+	},
+	{
+		"model": "mliyweb.instancetype",
+		"pk": 20,
+		"fields": {
+			"aws_name": "r3.large",
+			"description": "small (2cpu, 15gb ram, r3.l)",
+			"ebs_optimizable": false
+		}
+	},
+	{
+		"model": "mliyweb.instancetype",
+		"pk": 21,
+		"fields": {
+			"aws_name": "r3.xlarge",
+			"description": "medium (4cpu, 30gb ram, r3.xl)",
+			"ebs_optimizable": true
+		}
+	},
+	{
+		"model": "mliyweb.instancetype",
+		"pk": 22,
+		"fields": {
+			"aws_name": "g2.2xlarge",
+			"description": "1 GPU 8 vCPU 15 GB RAM 1 60 GB SSD",
+			"ebs_optimizable": true
+		}
+	},
+	{
+		"model": "mliyweb.instancetype",
+		"pk": 23,
+		"fields": {
+			"aws_name": "g2.8xlarge",
+			"description": "4 GPU 32 vCPU 60 GB RAM 2 120 GB SSD",
+			"ebs_optimizable": false
+		}
+	},
+	{
+		"model": "mliyweb.instancetype",
+		"pk": 24,
+		"fields": {
+			"aws_name": "p2.xlarge",
+			"description": "1GPU 4vCPU 61GB RAM 12GB GPU RAM 2,496 Parellel Processing Cores $0.90/hr",
+			"ebs_optimizable": true
+		}
+	},
+	{
+		"model": "mliyweb.instancetype",
+		"pk": 25,
+		"fields": {
+			"aws_name": "p2.8xlarge",
+			"description": "8GPU 32vCPU 488GB RAM 96GB GPU RAM 19,968 Parellel Processing Cores $7.20/hr",
+			"ebs_optimizable": true
+		}
+	},
+	{
+		"model": "mliyweb.instancetype",
+		"pk": 26,
+		"fields": {
+			"aws_name": "p2.16xlarge",
+			"description": "16GPU 64vCPU 732GB RAM 192GB GPU RAM 39,936 Parellel Processing Cores $14.40/hr",
+			"ebs_optimizable": true
+		}
+	},
+	{
+		"model": "mliyweb.instancetype",
+		"pk": 27,
+		"fields": {
+			"aws_name": "p3.2xlarge",
+			"description": "1GPU 8vCPU 61GB RAM 16GB GPU RAM $/3.06hr",
+			"ebs_optimizable": true
+		}
+	},
+	{
+		"model": "mliyweb.instancetype",
+		"pk": 28,
+		"fields": {
+			"aws_name": "p3.8xlarge",
+			"description": "4GPU 32vCPU 244GB RAM 64GB GPU RAM $/12.24hr",
+			"ebs_optimizable": true
+		}
+	},
+	{
+		"model": "mliyweb.instancetype",
+		"pk": 29,
+		"fields": {
+			"aws_name": "p3.16xlarge",
+			"description": "8GPU 64vCPU 488GB RAM 128GB GPU RAM $/24.48hr",
+			"ebs_optimizable": true
+		}
+	}
+]

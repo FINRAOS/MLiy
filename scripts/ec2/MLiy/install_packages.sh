@@ -41,15 +41,28 @@ yum install -y -q NLopt-2.4.2-2.el6.x86_64.rpm NLopt-devel-2.4.2-2.el6.x86_64.rp
 wget -q https://support.hdfgroup.org/ftp/HDF5/prev-releases/hdf5-1.8/hdf5-1.8.9/bin/RPMS/x86_64/hdf5-1.8.9-1.el6.x86_64.rpm
 yum install -y -q hdf5-1.8.9-1.el6.x86_64.rpm && rm -f hdf5-1.8.9-1.el6.x86_64.rpm
 
-# Download R and associated packages
-wget -q https://cran.r-project.org/src/base/R-3/R-3.3.3.tar.gz 
+# Download R 
+wget -q https://cran.r-project.org/src/base/R-3/R-3.5.1.tar.gz 
+tar xzf R-3.5.1.tar.gz && rm -f R-3.5.1.tar.gz
+
+# Download AWS packages 
 wget -q https://github.com/cloudyr/cloudyr.github.io/raw/master/drat/src/contrib/aws.signature_0.3.5.tar.gz
 wget -q https://github.com/cloudyr/cloudyr.github.io/raw/master/drat/src/contrib/aws.s3_0.3.8.tar.gz
 wget -q https://github.com/cloudyr/cloudyr.github.io/raw/master/drat/src/contrib/aws.ec2metadata_0.1.2.tar.gz
 
+# Download bsts packages
+wget -q https://cran.r-project.org/src/contrib/bsts_0.8.0.tar.gz
+wget -q https://cran.r-project.org/src/contrib/Boom_0.8.tar.gz
+wget -q https://cran.r-project.org/src/contrib/Archive/RcppEigen/RcppEigen_0.3.3.4.0.tar.gz
+wget -q https://cran.r-project.org/src/contrib/BoomSpikeSlab_1.0.0.tar.gz
+
+# Download openBLAS
+wget -q https://github.com/xianyi/OpenBLAS/archive/v0.3.5.tar.gz
+tar xzf v0.3.5.tar.gz && rm -f v0.3.5.tar.gz
+
 # Install RStudio
-wget -q  https://download2.rstudio.org/rstudio-server-rhel-1.0.44-x86_64.rpm
-yum install -y -q --nogpgcheck rstudio-server-rhel-1.0.44-x86_64.rpm && rm -f rstudio-server-rhel-1.0.44-x86_64.rpm
+wget -q  https://download2.rstudio.org/rstudio-server-rhel-1.1.463-x86_64.rpm
+yum install -y -q --nogpgcheck rstudio-server-rhel-1.1.463-x86_64.rpm && rm -f rstudio-server-rhel-1.1.463-x86_64.rpm
 
 
 # Install RShiny
@@ -61,8 +74,8 @@ wget -q https://prdownloads.sourceforge.net/weka/weka-3-8-2.zip
 unzip -q weka-3-8-2.zip && rm -f weka-3-8-2.zip
 
 # Install H2O
-wget -q https://h2o-release.s3.amazonaws.com/h2o/rel-turing/7/h2o-3.10.0.7.zip
-unzip -q h2o-3.10.0.7.zip && rm -f h2o-3.10.0.7.zip
+wget -q https://h2o-release.s3.amazonaws.com/h2o/rel-wright/3/h2o-3.20.0.3.zip
+unzip -q h2o-3.20.0.3.zip && rm h2o-3.20.0.3.zip
 
 # Install Scala and SBT
 wget -q https://downloads.lightbend.com/scala/2.11.8/scala-2.11.8.tgz
@@ -72,23 +85,33 @@ tar xzf scala-2.10.6.tgz && rm -f scala-2.10.6.tgz
 wget -q https://piccolo.link/sbt-0.13.17.tgz
 tar xzf sbt-0.13.17.tgz && rm -f sbt-0.13.17.tgz
 
-# Install Torch and dependencies
-git clone https://github.com/torch/distro.git torch --recursive >/dev/null
-wget -q https://dl.fedoraproject.org/pub/epel/6/x86_64/Packages/o/openpgm-5.1.118-3.el6.x86_64.rpm
-wget -q https://dl.fedoraproject.org/pub/epel/6/x86_64/Packages/z/zeromq3-3.2.5-1.el6.x86_64.rpm
-wget -q https://dl.fedoraproject.org/pub/epel/6/x86_64/Packages/z/zeromq3-devel-3.2.5-1.el6.x86_64.rpm
-yum install -y -q openpgm-5.1.118-3.el6.x86_64.rpm zeromq3-3.2.5-1.el6.x86_64.rpm zeromq3-devel-3.2.5-1.el6.x86_64.rpm && rm -f openpgm-5.1.118-3.el6.x86_64.rpm zeromq3-3.2.5-1.el6.x86_64.rpm zeromq3-devel-3.2.5-1.el6.x86_64.rpm
+# Install Spark
+wget -q https://archive.apache.org/dist/spark/spark-2.4.0/spark-2.4.0-bin-hadoop2.7.tgz
+tar xzf spark-2.4.0-bin-hadoop2.7.tgz -C /usr/local/ && ln -s /usr/local/spark-2.4.0-bin-hadoop2.7 /usr/local/spark && rm -f spark-2.4.0-bin-hadoop2.7.tgz
 
-if [[ $itype == g2 || $itype == p2 ]] ; then
+if [[ ! -z $GPU_TYPE ]] ; then
 # Cuda Toolkit
 wget -q https://developer.nvidia.com/compute/cuda/9.0/Prod/local_installers/cuda_9.0.176_384.81_linux-run
 wget -q https://developer.nvidia.com/compute/cuda/9.0/Prod/patches/1/cuda_9.0.176.1_linux-run
 wget -q https://developer.nvidia.com/compute/cuda/9.0/Prod/patches/2/cuda_9.0.176.2_linux-run
 # Cannot download CuDnn from NVidia
 wget -q http://developer.download.nvidia.com/compute/redist/cudnn/v7.0.5/cudnn-9.0-linux-x64-v7.tgz
+# NCCL
+wget -q -O nccl_2.2.13-1+cuda9.0_x86_64.txz https://sourceforge.net/projects/tensorrt-rel/files/4/CUDA-9.0/nccl_2.2.13-1%2Bcuda9.0_x86_64.txz/download
 # Theano Pre-requisites
 wget -q https://download.opensuse.org/repositories/home:/Milliams/CentOS_CentOS-6/x86_64/cmake-3.0.0-142.1.x86_64.rpm
 git clone https://github.com/Theano/libgpuarray.git >/dev/null
+
+# Install Torch and dependencies
+git clone https://github.com/torch/distro.git torch --recursive >/dev/null
+wget -q https://dl.fedoraproject.org/pub/epel/6/x86_64/Packages/o/openpgm-5.1.118-3.el6.x86_64.rpm
+wget -q https://dl.fedoraproject.org/pub/epel/6/x86_64/Packages/z/zeromq3-3.2.5-1.el6.x86_64.rpm
+wget -q https://dl.fedoraproject.org/pub/epel/6/x86_64/Packages/z/zeromq3-devel-3.2.5-1.el6.x86_64.rpm
+yum install -y -q openpgm-5.1.118-3.el6.x86_64.rpm zeromq3-3.2.5-1.el6.x86_64.rpm zeromq3-devel-3.2.5-1.el6.x86_64.rpm && rm -f openpgm-5.1.118-3.el6.x86_64.rpm zeromq3-3.2.5-1.el6.x86_64.rpm zeromq3-devel-3.2.5-1.el6.x86_64.rpm
+# download iTorch
+git clone https://github.com/facebook/iTorch.git >/dev/null 
+# Download pytorch
+git clone https://github.com/hughperkins/pytorch.git >/dev/null
 
 fi
 

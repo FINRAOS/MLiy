@@ -1,0 +1,517 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: |-
+  AWS Cloudformation Template for MLiy.
+  Copyright 2017 MLiy Contributors
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+  http://www.apache.org/licenses/LICENSE-2.0
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+Parameters:
+  TimeZone:
+    Description: TimeZone the application is hosted on
+    Type: String
+    Default: US/Eastern
+  LanguageCode:
+    Description: Language Code for the application to use
+    Type: String
+    Default: en-us
+  KeyName:
+    Description: The SSH key pair to use
+    Type: String
+  ImageId:
+    Description: The AMI (Amazon Machine Image) to use
+    Type: String
+  InstanceType:
+    Default: t2.medium
+    Description: The instance type to use
+    Type: String
+  IamInstanceProfile:
+    Description: The EC2 instance profile to use
+    Type: String
+  SecurityGroups:
+    Description: Security Groups to associate with Launch Configuration
+    Type: 'List<AWS::EC2::SecurityGroup::Id>'
+  SourceBucket:
+    Description: >-
+      The source S3 bucket where the installation script is located. Do not
+      prefix with s3://
+    Type: String
+  SourcePackage:
+    Default: mliyweb.tar.gz
+    Description: The name of the installation package
+    Type: String
+  SourceScript:
+    Default: install.sh
+    Description: The name of the installation script
+    Type: String
+  elbName:
+    Description: The name to use for the ELB
+    Type: String
+    Default: NOT_SET
+  elbSubnets:
+    Description: The subnets to use for the ELB
+    Type: CommaDelimitedList
+    Default: ''
+  elbSecurityGroups:
+    Description: The security groups to use for the ELB
+    Type: CommaDelimitedList
+    Default: ''
+  elbSSLCertificateId:
+    Description: >-
+      The ARN of the SSL certificate to use. For more information about SSL
+      certificates, see
+      http://docs.aws.amazon.com/IAM/latest/UserGuide/ManagingServerCerts.html
+      in the AWS Identity and Access Management documentation.
+    Type: String
+    Default: ''
+  elbhealthUrl:
+    Description: 'The health check URL to use for the ELB (format: [PROTOCOL]:[PORT]/[PATH])'
+    Type: String
+    Default: 'HTTPS:443/health'
+  elbHealthyThreshold:
+    Description: >-
+      The number of consecutive health checks successes required before moving
+      the instance to the Healthy state
+    Type: String
+    Default: '3'
+  elbUnhealthyThreshold:
+    Description: >-
+      The number of consecutive health check failures required before moving the
+      instance to the Unhealthy state
+    Type: String
+    Default: '5'
+  elbInterval:
+    Description: >-
+      The approximate interval, in seconds, between health checks of an
+      individual instance
+    Type: String
+    Default: '20'
+  elbTimeout:
+    Description: >-
+      The amount of time, in seconds, during which no response means a failed
+      health check
+    Type: String
+    Default: '5'
+  asGroupMinSize:
+    Description: The min size to use for the autoscaling group
+    Type: Number
+    Default: '1'
+  asGroupMaxSize:
+    Description: The max size to use for the autoscaling group
+    Type: Number
+    Default: '2'
+  asVpcSubnets:
+    Description: The subnet(s) to use for the autoscaling group
+    Type: 'List<AWS::EC2::Subnet::Id>'
+  asCooldown:
+    Description: >-
+      The number of seconds after a scaling activity is completed before any
+      further scaling activities can start.
+    Type: String
+    Default: '90000'
+  asHealthCheckGracePeriod:
+    Description: >-
+      The length of time in seconds after a new EC2 instance comes into service
+      that Auto Scaling starts checking its health.
+    Type: Number
+    Default: '78000'
+  asHealthCheckType:
+    Description: >-
+      The service you want the health status from, Amazon EC2 or Elastic Load
+      Balancer. Valid values are EC2 or ELB.
+    Type: String
+    Default: ELB
+  asMinSuccessfulInstancesPercent:
+    Description: >-
+      Specifies the percentage of instances in an Auto Scaling rolling update
+      that must signal success for an update to succeed.
+    Type: Number
+    Default: '100'
+  asPauseTime:
+    Description: >-
+      The amount of time that AWS CloudFormation pauses after making a change to
+      a batch of instances to give those instances time to start software
+      applications.
+    Type: String
+    Default: PT5M
+  signalCount:
+    Description: >-
+      The number of success signals AWS CloudFormation must receive before it
+      sets the resource status as CREATE_COMPLETE
+    Type: Number
+    Default: '1'
+  signalTimeout:
+    Description: >-
+      The amount of time to wait before timing out due to not receiving a
+      cfn-signal from instances in the autoscaling group
+    Type: String
+    Default: PT5M
+  DjangoSecretKey:
+    NoEcho: 'true'
+    Description: >-
+      The secret key for a particular Django installation. This is used to
+      provide cryptographic signing, and should be set to a unique,
+      unpredictable value.
+    Type: String
+  LdapAuthUrl:
+    Description: >-
+      Specifies the LDAP server, the base DN, the attribute to use in the
+      search, as well as the extra search filter to use.
+    Type: String
+    Default: ''
+  LdapBindDn:
+    Description: A DN to bind with during the search phase.
+    Type: String
+    Default: ''
+  LdapBindPassword:
+    NoEcho: 'true'
+    Description: A password to bind with during the search phase.
+    Type: String
+    Default: ''
+  LdapGroupAttribute:
+    Description: Authorize member of this group to access
+    Type: String
+    Default: ''
+  LdapAdminGroupAttribute:
+    Description: Authorize member of this group to manage MLiy
+    Type: String
+    Default: ''
+  LdapDisableCertValidation:
+    Description: Disable SSL certificate validation when connecting to the LDAP server
+    AllowedValues:
+      - 'true'
+      - 'false'
+    Type: String
+    Default: 'false'
+  ManagerHostname:
+    Description: >-
+      The Fully Qualified Hostname of the EC2 instance hosting MLiy web
+      application
+    Type: String
+  DnsService:
+    Description: DNS service to use for MLiy-launched instances.
+    Type: String
+    AllowedValues:
+      - aws
+      - api
+    Default: aws
+  DomainName:
+    Description: The domain used (eg Route53 Hosted Zone) when managing DNS records
+    Type: String
+    Default: ''
+  AppDns:
+    Description: >-
+      The Fully Qualified DNS of application that maps to ELB. This is what will
+      be used to access the application
+    Type: String
+    Default: ''
+  DnsApiUrl:
+    Description: >-
+      The DNS REST API URL to use to register and unregister A record for MLiy
+      instances
+    Type: String
+    Default: ''
+  DnsMliyDomain:
+    Description: >-
+      The DNS Domain to use to register and unregister A record for MLiy
+      instances
+    Type: String
+    Default: ''
+  DnsApiData:
+    Description: Any Data Payload to send to DNS API REST Services
+    Type: String
+    Default: ''
+  CreateRoute53ElbCnameRecord:
+    Description: >-
+      Create a DNS CNAME Record AppDns in Route53 hosted zone DomainName that
+      maps to ELB: TRUE or FALSE
+    Type: String
+    AllowedValues:
+      - 'TRUE'
+      - 'FALSE'
+    Default: 'FALSE'
+  DatabaseType:
+    Description: The Database Type supporting MLiy web application
+    Type: String
+    AllowedValues:
+      - 'mysql'
+      - 'sqllite'
+    Default: 'sqllite'
+  DatabaseName:
+    Description: If using mysql, provide database name
+    Type: String
+    Default: ''
+  DatabaseHostname:
+    Description: If using mysql, provide database hostname
+    Type: String
+    Default: ''
+  DatabaseUserName:
+    Description: If using mysql, provide database username to connect with
+    Type: String
+    Default: ''
+  DatabaseUserPassword:
+    NoEcho: 'true'
+    Description: If using mysql, provide database password of the username to connect with
+    Type: String
+    Default: ''
+  DatabaseInitialize:
+    Description: >-
+      Initialize specified database with tables and default data. 
+      This needs to be TRUE for initial deployment and FALSE for subsequent deployments.
+    Type: String
+    AllowedValues:
+      - 'TRUE'
+      - 'FALSE'
+    Default: 'FALSE'
+  ProxyScript:
+    Description: >-
+      The name of the proxy script injected in the scripts folder that set proxy
+      variables in order to download packages
+    Type: String
+    Default: ''
+  GetInstancePricing:
+    Description: >-
+      Get the most recent EC2 instance pricing from http://www.ec2instances.info/instances.json.
+    Type: String
+    AllowedValues:
+      - 'TRUE'
+      - 'FALSE'
+    Default: 'FALSE'
+Conditions:
+  CreateELB: !Not 
+    - !Equals 
+      - !Ref elbName
+      - NOT_SET
+  CreateRoute53: !Not 
+    - !Equals 
+      - !Ref CreateRoute53ElbCnameRecord
+      - 'FALSE'
+Resources:
+  LaunchConfig:
+    Type: 'AWS::AutoScaling::LaunchConfiguration'
+    Properties:
+      ImageId: !Ref ImageId
+      KeyName: !Ref KeyName
+      SecurityGroups: !Ref SecurityGroups
+      InstanceType: !Ref InstanceType
+      IamInstanceProfile: !Ref IamInstanceProfile
+      UserData: !Base64 
+        'Fn::Join':
+          - ''
+          - - |
+              #!/bin/bash -xv
+            - export DNS_SERVICE=
+            - !Ref DnsService
+            - |+
+
+            - export DOMAIN_NAME=
+            - !Ref DomainName
+            - |+
+
+            - export SOURCE_BUCKET=
+            - !Ref SourceBucket
+            - |+
+
+            - export MANAGER_HOSTNAME=
+            - !Ref ManagerHostname
+            - |+
+
+            - export APP_DNS=
+            - !Ref AppDns
+            - |+
+
+            - export DJANGO_SECRET_KEY=
+            - !Ref DjangoSecretKey
+            - |+
+
+            - export LDAP_AUTH_URL='
+            - !Ref LdapAuthUrl
+            - |
+              '
+            - export LDAP_BIND_DN='
+            - !Ref LdapBindDn
+            - |
+              '
+            - export LDAP_BIND_PASSWORD='
+            - !Ref LdapBindPassword
+            - |
+              '
+            - export LDAP_GROUP_ATTRIBUTE='
+            - !Ref LdapGroupAttribute
+            - |
+              '
+            - export LDAP_ADMIN_GROUP_ATTRIBUTE='
+            - !Ref LdapAdminGroupAttribute
+            - |
+              '
+            - export DISABLE_LDAP_CERT_VALIDATION='
+            - !Ref LdapDisableCertValidation
+            - |
+              '
+            - export SOURCE_SCRIPT=
+            - !Ref SourceScript
+            - |+
+
+            - export SOURCE_PACKAGE=
+            - !Ref SourcePackage
+            - |+
+
+            - export PROXY_SCRIPT=
+            - !Ref ProxyScript
+            - |+
+
+            - export TIME_ZONE=
+            - !Ref TimeZone
+            - |+
+
+            - export LANGUAGE_CODE=
+            - !Ref LanguageCode
+            - |+
+
+            - export DNS_API_URL=
+            - !Ref DnsApiUrl
+            - |+
+
+            - export DNS_MLIY_DOMAIN=
+            - !Ref DnsMliyDomain
+            - |+
+
+            - export DNS_API_DATA=
+            - !Ref DnsApiData
+            - |+
+            
+            - export DB_TYPE=
+            - !Ref DatabaseType
+            - |+            
+
+            - export DB_NAME=
+            - !Ref DatabaseName
+            - |+ 
+            
+            - export DB_HOST=
+            - !Ref DatabaseHostname
+            - |+    
+
+            - export DB_USER=
+            - !Ref DatabaseUserName
+            - |+ 
+
+            - export DB_PASSWD=
+            - !Ref DatabaseUserPassword
+            - |+  
+
+            - export DB_INIT=
+            - !Ref DatabaseInitialize
+            - |+             
+
+            - export INSTANCE_PRICING=
+            - !Ref GetInstancePricing
+            - |+
+
+            - |
+              yum install -y aws-cfn-bootstrap
+            - |
+              useradd mliyapp
+            - |
+              export INSTALL_BASE=~mliyapp;cd $INSTALL_BASE
+            - |
+              mkdir mliyweb logs;cd mliyweb
+            - >
+              aws s3 cp s3://$SOURCE_BUCKET/$SOURCE_PACKAGE .; tar xzf
+              $SOURCE_PACKAGE; rm -rf $SOURCE_PACKAGE
+            - |
+              bash scripts/$SOURCE_SCRIPT
+            - '/opt/aws/bin/cfn-signal -e $? --stack '
+            - !Ref 'AWS::StackName'
+            - ' --resource AutoScalingGroup '
+            - ' --region '
+            - !Ref 'AWS::Region'
+            - |+
+
+  ElasticLoadBalancer:
+    Condition: CreateELB
+    Type: 'AWS::ElasticLoadBalancing::LoadBalancer'
+    Properties:
+      LoadBalancerName: !Ref elbName
+      Subnets: !Ref elbSubnets
+      SecurityGroups: !Ref elbSecurityGroups
+      Scheme: internal
+      Listeners:
+        - LoadBalancerPort: '443'
+          InstancePort: '443'
+          SSLCertificateId: !Ref elbSSLCertificateId
+          Protocol: HTTPS
+          InstanceProtocol: HTTPS
+      HealthCheck:
+        Target: !Ref elbhealthUrl
+        HealthyThreshold: !Ref elbHealthyThreshold
+        UnhealthyThreshold: !Ref elbUnhealthyThreshold
+        Interval: !Ref elbInterval
+        Timeout: !Ref elbTimeout
+  AutoScalingGroup:
+    Type: 'AWS::AutoScaling::AutoScalingGroup'
+    CreationPolicy:
+      ResourceSignal:
+        Count: !Ref signalCount
+        Timeout: !Ref signalTimeout
+    UpdatePolicy:
+      AutoScalingRollingUpdate:
+        MaxBatchSize: !Ref asGroupMaxSize
+        MinInstancesInService: !Ref asGroupMinSize
+        MinSuccessfulInstancesPercent: !Ref asMinSuccessfulInstancesPercent
+        PauseTime: !Ref asPauseTime
+        SuspendProcesses:
+          - HealthCheck
+          - ReplaceUnhealthy
+          - AZRebalance
+          - AlarmNotification
+          - ScheduledActions
+        WaitOnResourceSignals: 'true'
+    Properties:
+      Cooldown: !Ref asCooldown
+      HealthCheckGracePeriod: !Ref asHealthCheckGracePeriod
+      HealthCheckType: !Ref asHealthCheckType
+      LaunchConfigurationName: !Ref LaunchConfig
+      MinSize: !Ref asGroupMinSize
+      MaxSize: !Ref asGroupMaxSize
+      VPCZoneIdentifier: !Ref asVpcSubnets
+      LoadBalancerNames:
+        - !If 
+          - CreateELB
+          - !Ref ElasticLoadBalancer
+          - !Ref 'AWS::NoValue'
+  DNS:
+    Condition: CreateRoute53
+    Type: 'AWS::Route53::RecordSetGroup'
+    DependsOn: ElasticLoadBalancer
+    Properties:
+      HostedZoneName: !Ref DomainName
+      RecordSets:
+        - Name: !Join 
+            - ''
+            - - !Ref AppDns
+              - .
+          Type: A
+          AliasTarget:
+            HostedZoneId: !GetAtt 
+              - ElasticLoadBalancer
+              - CanonicalHostedZoneNameID
+            DNSName: !GetAtt 
+              - ElasticLoadBalancer
+              - DNSName
+Outputs:
+  LaunchConfigId:
+    Description: Launch Config Identity
+    Value: !Ref LaunchConfig
+  ASGroupId:
+    Description: Auto Scaling Group Identity
+    Value: !Ref AutoScalingGroup
+  ELBId:
+    Description: Elastic Load Balancer Identity
+    Value: !Ref ElasticLoadBalancer
+    Condition: CreateELB

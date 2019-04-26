@@ -24,7 +24,10 @@
         "g2.8xlarge",
         "p2.xlarge",
         "p2.8xlarge",
-        "p2.16xlarge"
+        "p2.16xlarge",
+		"p3.2xlarge",
+        "p3.8xlarge",
+        "p3.16xlarge"
       ],
       "ConstraintDescription": "must be a valid EC2 instance type."
     },
@@ -69,7 +72,7 @@
       "Type": "Number",
       "Default": "100",
       "MinValue": "1",
-      "MaxValue": "1000"
+      "MaxValue": "1024"
     },
     "UserData": {
       "Description": "User Data to pass on to the EC2 instance in Base64",
@@ -79,7 +82,12 @@
     "ResourceSignalTimeout": {
       "Description": "The length of time that AWS CloudFormation waits for a signal from an EC2 instance",
       "Type": "String",
-      "Default": "PT90M"
+      "Default": "PT180M"
+    },
+    "SnapshotId": {
+      "Description": "Snapshot ID of EBS volume to attach.",
+      "Type": "String",
+      "Default": "NOT_SET"
     }
   },
   "Mappings": {
@@ -112,6 +120,15 @@
         "EBSOptimized": "true"
       },
       "p2.16xlarge": {
+        "EBSOptimized": "true"
+      },
+      "p3.2xlarge": {
+        "EBSOptimized": "true"
+      },
+      "p3.8xlarge": {
+        "EBSOptimized": "true"
+      },
+      "p3.16xlarge": {
         "EBSOptimized": "true"
       }
     }
@@ -154,6 +171,18 @@
           ]
         }
       ]
+    },
+    "UseSnapshot": {
+      "Fn::Not": [
+        {
+          "Fn::Equals": [
+            {
+              "Ref": "SnapshotId"
+            },
+            "NOT_SET"
+          ]
+        }
+      ]
     }
   },
   "Resources": {
@@ -177,6 +206,17 @@
             "setKmsKeyId",
             {
               "Ref": "KmsKeyId"
+            },
+            {
+              "Ref": "AWS::NoValue"
+            }
+          ]
+        },
+        "SnapshotId": {
+          "Fn::If": [
+            "UseSnapshot",
+            {
+              "Ref": "SnapshotId"
             },
             {
               "Ref": "AWS::NoValue"

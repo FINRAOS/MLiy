@@ -20,7 +20,7 @@ limitations under the License.
 
 '''
 from django.contrib.auth.models import User, Group
-from .settings import MANAGER_GROUP_NAME
+from .settings import MANAGER_GROUP_NAME, AWS_REGION
 import boto3
 import logging
 import requests
@@ -63,12 +63,14 @@ def remove_managergroup(groupset):
 			groupset.remove(mgr_group)
 	except Group.DoesNotExist:
 		# ugh
-		debug.error('group "%s" defined as MANAGER_GROUP_NAME, but not defined in system', MANAGER_GROUP_NAME)
+		log = logging.getLogger(__name__)
+
+		log.error('group "%s" defined as MANAGER_GROUP_NAME, but not defined in system', MANAGER_GROUP_NAME)
 	return groupset
 
 
 def findVPCID(purpose):
-	client = boto3.client('ec2')
+	client = boto3.client('ec2', region_name=AWS_REGION)
 
 	filters = [{'Name': 'tag:Purpose', 'Values': [purpose.lower()]}]
 
@@ -96,7 +98,7 @@ def getCurrentSubnetAz():
 
 
 def getSubnets(vpcID, subnetType):
-	client = boto3.client('ec2')
+	client = boto3.client('ec2', region_name=AWS_REGION)
 
 	# get Subnet which has the same AZ as the launcher
 	AZ = getCurrentSubnetAz()

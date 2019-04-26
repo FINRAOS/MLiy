@@ -19,6 +19,7 @@ limitations under the License.
 '''
 
 from mliyweb.models import GroupConfig
+from mliyweb.settings import LDAP_ADMIN_GROUP_ATTRIBUTE
 from django.contrib.auth.models import User, Group
 import logging
 
@@ -42,7 +43,7 @@ def processAuthUserInfo(user,request):
 	# This can be extended to allow various permissions using LDAP.
 	# The one below gives admin rights.
 	if 'AUTHORIZE_MEMBEROF' in request.META \
-		and 'CN=COMMON_NAME,OU=ORG_UNIT' in request.META['AUTHORIZE_MEMBEROF']:
+		and LDAP_ADMIN_GROUP_ATTRIBUTE in request.META['AUTHORIZE_MEMBEROF']:
 		user.is_staff = True
 		user.is_superuser = True
 

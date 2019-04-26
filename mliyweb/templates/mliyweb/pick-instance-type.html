@@ -14,41 +14,74 @@ limitations under the License. -->
 {% extends 'mliyweb/base-template.html' %}
 {% block content-main %}
 
-        <div class="col-sm-9 col-sm-offset-3 col-md-10 col-md-offset-2 main">
-          <h1 class="page-header">Launch New Instance</h1>
-
-          <h2 class="sub-header">Select Software Configuration</h2>
-          <div class="row">
-            <div class="col-md-8">
-              <div class="table-responsive">
-              <table class="table table-striped">
-                <tbody id="instances">
-                <tr>
-                  <th>Configuration</th>
-                  <th>Description</th>
-                </tr>
-                {% for obj in object_list %}
-                <tr>
-                    <td> {{ obj.name }}</td>
-                    <td>                   
-                    <a class="btn btn-default" href="{% url 'selinstdetails' grpid=grpid swconfigid=obj.id %}" role="button" id="swcfg_{{ obj.id }}">Launch</a>
-                    </td>
-                  </tr>
-                {% endfor %}
-                </tbody>
-              </table>
+<div class="col-sm-9 col-sm-offset-3 col-md-10 col-md-offset-2 main">
+    <h1 class="page-header">Select Software Configuration</h1>
+    <h2 class="sub-header">Launch an Instance</h2>
+    <div class="row">
+        <div class="col-md-8">
+            <div class="table-responsive">
+                <table class="table table-striped">
+                    <tbody id="instances">
+                    <tr>
+                        <th>Configuration</th>
+                        <th></th>
+                    </tr>
+                    {% for obj in object_list %}
+                    {% if obj.emr_config is False %}
+                    <tr>
+                        <td> {{ obj.name }}</td>
+                        <td>
+                            <a class="btn btn-default" href="{% url 'selinstdetails' grpid=grpid swconfigid=obj.id %}"
+                               role="button" id="swcfg_{{ obj.id }}">Launch</a>
+                        </td>
+                    </tr>
+                    {% endif %}
+                    {% endfor %}
+                    </tbody>
+                </table>
             </div>
-            
-          </div>
-          <div class="col-md-4">
-          <div class="panel panel-info">
+
+        </div>
+    </div>
+    {% if group_config.emr_access %}
+    <h2 class="sub-header">Launch a Cluster</h2>
+    <div class="row">
+        <div class="col-md-8">
+            <div class="table-responsive">
+                <table class="table table-striped">
+                    <tbody id="clusters">
+                    <tr>
+                        <th>Configuration</th>
+                        <th></th>
+                    </tr>
+                    {% for obj in object_list %}
+                    {% if obj.emr_config is True %}
+                    <tr>
+                        <td> {{ obj.name }}</td>
+                        <td>
+                            <a class="btn btn-default" href="{% url 'selectemrdetails' grpid=grpid swconfigid=obj.id %}"
+                               role="button" id="swcfg_{{ obj.id }}">Launch</a>
+                        </td>
+                    </tr>
+                    {% endif %}
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+        </div>
+    </div>
+    {% endif %}
+    <div class="col-md-4">
+        <div class="panel panel-info">
             <div class="panel-heading">
-              <h4 class="panel-title">Software Info</h4>
+                <h4 class="panel-title">Software Info</h4>
             </div>
             <div id="swd" class="panel-body">
             </div>
-          </div>
         </div>
+    </div>
+</div>
 {% endblock %}
 {% block javascript %}
 <script>
@@ -58,7 +91,7 @@ $("#launch").addClass("active");
 $("#swcfg_{{obj.id}}").hover(function() {$("#swd").html("{{obj.html_description|safe|linebreaks}}");},function(){$("#swd").html("&nbsp;");});
 {% endfor %}
 
-function populatePanel( data ) { 
+function populatePanel( data ) {
   console.log(data);
   $("#swd").html(data);
 }
@@ -66,5 +99,15 @@ function populatePanel( data ) {
 function clearPanel() {
   $("#swd").html("&nbsp;");
 }
+
+
+
+
+
+
+
+
+
+
 </script>
 {% endblock %}

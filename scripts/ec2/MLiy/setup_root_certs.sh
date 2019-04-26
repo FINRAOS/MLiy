@@ -18,11 +18,15 @@
 cd ~analyst
 
 # Add Custom roots certs to Linux truststore
-cat ${CUSTOM_ROOT_CERTS} >> /etc/pki/tls/certs/ca-bundle.crt
+if [[ -f $SCRIPT_DIR/${CUSTOM_ROOT_CERTS} ]]; then
+	cat $SCRIPT_DIR/${CUSTOM_ROOT_CERTS} >> /etc/pki/tls/certs/ca-bundle.crt
+else
+	cat ${CUSTOM_ROOT_CERTS} >> /etc/pki/tls/certs/ca-bundle.crt
+fi
 
 # Add Custom root certs to JKS Store
-keytool -import -noprompt -trustcacerts -alias -file  ${CUSTOM_ROOT_CERTS}  -keystore /etc/pki/java/cacerts -storepass changeit
+keytool -import -noprompt -trustcacerts -alias CUSTOM -file  ${CUSTOM_ROOT_CERTS}  -keystore /etc/pki/java/cacerts -storepass changeit
 
-rm -f *.crt
+rm -f ${CUSTOM_ROOT_CERTS}
 
 cd $SCRIPT_DIR

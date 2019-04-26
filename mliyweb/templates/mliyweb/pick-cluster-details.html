@@ -1,0 +1,75 @@
+<!-- Copyright 2017 MLiy Contributors
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+     http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License. -->
+{% extends 'mliyweb/base-template.html' %}
+{% block content-main %}
+
+        <div class="col-sm-9 col-sm-offset-3 col-md-10 col-md-offset-2 main">
+          <h1 class="page-header">Launch New Cluster</h1>
+
+          <h2 class="sub-header">Select New Cluster Details</h2>
+          <div class="row">
+          <div class="col-md-8">
+            <div class="table-responsive">
+            <form id="pgform" method=post>
+            <div class="form-group">
+
+                {% csrf_token %}
+                {{ form }}
+
+            <input class="btn fat" type="submit" value="Launch Cluster" />
+            </div>
+            </form>
+            </div>
+          </div>
+          <div class="col-md-4">
+
+          </div>
+          </div>
+        </div>
+{% endblock %}
+{% block javascript %}
+<script>
+
+$("#launch-cluster").addClass("active");
+// bind to selection for the instance type, pull back specific information for each
+
+
+$("#on_demand").change(function() {
+  console.log("They pressed me!");
+  var pressed = $('#on_demand:checked').is(":checked");
+  console.log("I am pressed: "+pressed)
+  if(pressed){
+    console.log("WE're in here")
+    $("#bid_price").addClass("disabled");
+    $("#bid_price").attr("disabled","");
+  }
+  else
+  {
+    console.log("were out tthere")
+    $("#bid_price").removeClass("disabled");
+    $("#bid_price").removeAttr("disabled");
+  }
+});
+
+
+
+
+$("#id_instance_type").change(function() {
+  var select = $("#id_instance_type");
+  var selected = select.prop("selectedIndex");
+  var insttype = select.prop("options")[selected].text;
+  });
+
+</script>
+{% endblock %}

@@ -25,11 +25,16 @@ cd ~analyst
 # Setup Apache
 
 if [[ ! -z "${WILDCARD_CERTS_ARCHIVE}" ]]; then
-    tar xzf ${WILDCARD_CERTS_ARCHIVE}
-    cp ${WILDCARD_PUBLIC_CERT} /etc/pki/tls/certs/
-    chmod 600 /etc/pki/tls/certs/${WILDCARD_PUBLIC_CERT}
-    cp ${WILDCARD_PRIVATE_CERT} /etc/pki/tls/private/
-    chmod 600 /etc/pki/tls/private/${WILDCARD_PRIVATE_CERT}
+	if [[ -f "${SCRIPT_DIR}/${WILDCARD_CERTS_ARCHIVE}" ]]; then
+		cp ${SCRIPT_DIR}/${WILDCARD_CERTS_ARCHIVE} ~analyst
+	fi
+	if [[ -f "${WILDCARD_CERTS_ARCHIVE}" ]]; then
+		tar xzf ${WILDCARD_CERTS_ARCHIVE}
+		cp ${WILDCARD_PUBLIC_CERT} /etc/pki/tls/certs/
+		chmod 600 /etc/pki/tls/certs/${WILDCARD_PUBLIC_CERT}
+		cp ${WILDCARD_PRIVATE_CERT} /etc/pki/tls/private/
+		chmod 600 /etc/pki/tls/private/${WILDCARD_PRIVATE_CERT}
+	fi
 else
 	WILDCARD_PUBLIC_CERT='localhost.crt'
 	WILDCARD_PRIVATE_CERT='localhost.key'
@@ -61,9 +66,12 @@ RewriteRule (.*) https://%{HTTP_HOST} [R=301]
 RewriteEngine On
 RewriteRule "/(.*\.woff2)$" "http://localhost:6006/$1" [P]
 RedirectMatch permanent ^/rstudio$ /rstudio/
+RedirectMatch permanent ^/shiny$ /shiny/
 RedirectMatch permanent ^/ipython$ /ipython/
 RedirectMatch permanent ^/flow$ /flow/ 
 RedirectMatch permanent ^/tensorboard$ /tensorboard/ 
+RedirectMatch permanent ^/dash$ /dash/ 
+
 ErrorLog logs/ssl_error_log
 TransferLog logs/ssl_access_log
 LogLevel warn
@@ -157,7 +165,16 @@ ProxyPassReverse http://localhost:6006/lib/
 <Location /external/>                                                      
 ProxyPass        http://localhost:6006/external/   
 ProxyPassReverse http://localhost:6006/external/                         
-</Location>                                                                       
+</Location>
+<Location /dash/>
+AuthType basic
+AuthName "Python Dash"
+AuthBasicProvider PAM
+AuthPAMService httpd
+Require valid-user
+ProxyPass        http://localhost:8050/dash/ timeout=86400 keepalive=On
+ProxyPassReverse http://localhost:8050/dash/
+</Location>                                                                        
 </VirtualHost>
 EOF
 
@@ -168,38 +185,52 @@ cat > /var/www/html/index.html <<EOF
 <body>
 <h1>Unified Data Science Platform</h1>
 <p>
-Please use your <mark>Your network credentials</mark> to logon to the following three web-accessible services.
+Please use <mark>Your network credentials</mark> to logon to the following web-accessible services.
 <ul>
-<li><a href="/ipython/">Jupyter (iPython and iTorch)</a>
+<li><a href="/ipython/">Jupyter (iPython and iTorch*)</a>
+<li><a href="/dash/">Dash: A web application framework for Python.**</a>
 <li><a href="/rstudio/">R Studio Server</a>
 <li><a href="/shiny/">R Shiny Server</a>
 <li><a href="/flow/">H2O Flow</a>
 <li><a href="/tensorboard/">Tensorboard*</a>
-* Tensorboard will only work with GPU type instances such as g2 and p2
 </ul>
 </p>
+* Tensorboard and iTorch will only work with GPU type instances such as g2, p2 and p3
+<br>
+** The Dash link is only accessible if there is python DASH application running.
 <p>
 <h2>Documentation</h2>
 <p>
 <a href="https://cran.r-project.org/manuals.html">The R Project</a>
 </p>
 <p>
-<a href="https://www.rstudio.com">R Studio Server </a> and <a href="https://shiny.rstudio.com">R Shiny Server</a>
+<a href="https://www.rstudio.com">R Studio Server </a> 
+</p>
+<p>
+<a href="https://shiny.rstudio.com">R Shiny Server</a>
 </p>
 <p>
 <a href="http://jupyter.org">Jupyter</a>
 </p>
 <p>
-<a href="https://docs.python.org/2.7/">Python 2.7</a> and <a href="https://docs.python.org/3.4/">Python 3.4</a>
+<a href="https://docs.python.org/2.7/">Python 2.7</a>
 </p>
 <p>
-<a href="http://docs.h2o.ai/h2o/latest-stable/index.html">H2O </a>
+<a href="https://docs.python.org/3.6/">Python 3.6</a>
+</p>
+<p>
+<a href="https://dash.plot.ly/">Dash User Guide</a>
+</p>
+<p>
+<a href="http://docs.h2o.ai/h2o/latest-stable/index.html">H2O</a>
 </p>
 <p>
 <a href="https://www.tensorflow.org/programmers_guide/summaries_and_tensorboard">Tensorboard </a>
 </p>
+<a href="http://torch.ch/docs/getting-started.html#_">Torch</a>
+</p>
 <p>
-<a href="http://torch.ch/docs/getting-started.html#_">Torch</a> and <a href="https://github.com/facebook/iTorch">iTorch</a>
+<a href="https://github.com/facebook/iTorch">iTorch</a>
 </p>
 
 </body></html>

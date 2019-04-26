@@ -25,5 +25,7 @@ install.packages("RODBC",dependencies=TRUE,quiet=TRUE)
 install.packages("shiny",dependencies=TRUE)
 install.packages("statmod",dependencies=TRUE,quiet=TRUE)
 install.packages("xml2",dependencies=TRUE,quiet=TRUE)
+install.packages("xts",dependencies=TRUE)
+install.packages("zoo",dependencies=TRUE)
 
 

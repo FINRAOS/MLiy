@@ -11,11 +11,12 @@ test/target
 
 test/src/main/resources/awscredentials
 scripts/setup_aws_env.sh
-dist/odapweb.tar.gz
+dist/mliyweb.tar.gz
 logs/auth.log
 logs/boto.log
-logs/odapweb.log
+logs/mliyweb.log
 logs
-odapweb/migrations
+mliyweb/migrations
 tests
 *.exvCfB
+*.cloudpass

@@ -1,9 +1,23 @@
+# Copyright 2017 MLiy Contributors
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+
+#      http://www.apache.org/licenses/LICENSE-2.0
+
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 """
 Parses the instances.json assumed to be in the same directory and
 presents functions to calling code.
 """
 
 import json, logging
+import boto3
 from os.path import dirname
 
 # initialization of cache
@@ -41,6 +55,26 @@ def getPrice(insttype, region='us-east-1', ostype='linux'):
 		log.warn("Instance pricing for type '%s' not found.", insttype)
 		return float(0)
 
+def getSpotPrice(insttype, availability_zone='us-east-1a', region='us-east-1', product_description='Linux/UNIX (Amazon VPC)'):
+	client = boto3.client('ec2', region_name=region)
+
+	history = client.describe_spot_price_history(InstanceTypes=[insttype], MaxResults=1, ProductDescriptions=[product_description],
+												 AvailabilityZone=availability_zone)
+
+	price = float(history['SpotPriceHistory'][0]['SpotPrice'])
+
+	return price
+
+def getEmrPrice(insttype, region='us-east-1'):
+	log.debug("Looking up EMR price for instance '%s'", insttype)
+	if insttype in pcache:
+		log.debug("found EMR price %s", pcache[insttype]['pricing'][region]['emr']['emr'])
+		emr_price = float(pcache[insttype]['pricing'][region]['emr']['emr'])
+	else:
+		log.warning("Instance EMR pricing for type '%s' not found.", insttype)
+		emr_price =  float(0)
+
+	return emr_price
 
 def getInstanceData(insttype):
 	"""

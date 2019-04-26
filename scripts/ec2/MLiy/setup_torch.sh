@@ -15,25 +15,21 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-if [[ ! -z "$PROXY_SCRIPT" && -f $PROXY_SCRIPT ]]; then
-  source $PROXY_SCRIPT
-fi
-
 # Change to Analyst home directory to install/configure 
 cd ~analyst
 
-cd torch
-bash install-deps > /dev/null
-PREFIX=~analyst/torch ./install.sh -b > /dev/null
-
-echo '
-if [[ -f ~/proxy.sh ]]; then
-  source ~/proxy.sh
+# Setup proxy if needed
+EXECUTE_PROXY_SCRIPT=''
+if [[ ! -z "$PROXY_SCRIPT" && -f $PROXY_SCRIPT ]]; then
+  source $PROXY_SCRIPT
+  PROXY_FILE=$(basename $PROXY_SCRIPT)
+  PROXY=~analyst/$PROXY_FILE
+  EXECUTE_PROXY_SCRIPT="source $PROXY"
 fi
-source ~/torch/bin/torch-activate
-luarocks install cutorch > /dev/null 2>&1
-luarocks install cunn > /dev/null 2>&1
-luarocks install cudnn > /dev/null 2>&1
-' > ~analyst/install_lua_packages.sh
+
+cd torch
+bash install-deps > /dev/null 2>&1
+export TORCH_NVCC_FLAGS="-D__CUDA_NO_HALF_OPERATORS__" # for CUDA 9.0+
+PREFIX=~analyst/torch ./install.sh -b > /dev/null 2>&1
 
 cd $SCRIPT_DIR

@@ -14,62 +14,145 @@ See the License for the specific language governing permissions and
 limitations under the License.
 
 """
-
-from .plugin_settings import DNS_DATA, DNS_API_URL, DNS_MLIY_URL
-from mliyweb.models import Key
-import requests
+from mliyweb.settings import DOMAIN_NAME, DNS_SERVICE, AWS_REGION
+import logging
 
 
-"""
-DNS implementation varies by a large margin between users. When correctly implemented, this will remove HTTPS warnings from ec2 instance home pages.
+log = logging.getLogger('plugin_logs')
 
-This is a sample plugin that assumes that there is an existing DNS API. For a more generic implementation, Route53 
-could also be used.
-"""
+if DNS_SERVICE.lower() == 'aws':
+    try:
+        import boto3
+        dns_client = boto3.client('route53', region_name=AWS_REGION)
+    except Exception as e:
+        log.exception(e)
+else:
+    log.exception('Unable to define DNS client')
+
+def get_hostname(instance_id):
+
+    result = None
+
+    try:
+        result = '{}-{}.{}'.format(
+            'mliy', instance_id.split('-')[1].lower(), DOMAIN_NAME.lower())
+    except Exception as e:
+        result = e
+
+    return result
 
 
-"""
-This is the dns url that is displayed on the website and also 
+def aws_get_hosted_zone_id():
 
-Changing it from the default implementation will enable the DNS module
-"""
-def dnsDisplayName(instance_name, ip):
-	return str(instance_name+DNS_MLIY_URL)
+    result = None
 
-"""
-This method is called when an instance is created to create a dns entry. 
-"""
-def createDnsEntry(instance_name, ip):
-	dns_api_url = DNS_API_URL + instance_name + DNS_MLIY_URL
+    try:
+        hosted_zone_response = dns_client.list_hosted_zones_by_name(
+            DNSName=DOMAIN_NAME.lower())
+        if 'HostedZones' in hosted_zone_response:
+            for hosted_zone in hosted_zone_response['HostedZones']:
+                if hosted_zone['Name'].rstrip('.') == DOMAIN_NAME.lower():
+                    result = hosted_zone['Id'].replace('/hostedzone/','')
+    except Exception as e:
+        result = e
 
-	# Get the key from our database
+    return result
 
-	key = Key.objects.get(
-		title="MLIY-DNS-API-KEY").key_text
 
-	data = DNS_DATA
+def aws_update_dns_record(action, instance_id, instance_ip):
 
-	data['key'] = key
+    result = None
 
-	r = requests.put(url=dns_api_url + ip, data=data, verify=False)
+    msg = '{} record {} -> {}'.format(action, instance_id, instance_ip)
+    log.info(msg)
 
-	return r
+    try:
+        dns_action = {
+            'create' : 'UPSERT',
+            'delete' : 'DELETE' }.get(action, None)
+        hosted_zone_id = aws_get_hosted_zone_id()
+        hostname = get_hostname(instance_id)
+        record_data = {
+            'HostedZoneId': hosted_zone_id,
+            'ChangeBatch': {
+                'Comment': msg,
+                'Changes': [{
+                    'Action': dns_action,
+                    'ResourceRecordSet': {
+                        'Name': hostname,
+                        'Type': 'A',
+                        'TTL': 300,
+                        'ResourceRecords': [{'Value': instance_ip}]}
+                }]
+            }
+        }
+        result = dns_client.change_resource_record_sets(**record_data)
+    except Exception as e:
+        result = e
 
-"""
-This method is called when an instance is destroyed to remove a dns entry. 
-"""
-def deleteDnsEntry(instance_name, ip):
-	dns_api_url = DNS_API_URL + instance_name + DNS_MLIY_URL
+    return result
 
-	# Get the key from our database
 
-	key = Key.objects.get(
-		title="MLIY-DNS-API-KEY").key_text
+def aws_test_dns(hostname):
 
-	data = DNS_DATA
+    result = False
 
-	data['key'] = key
+    try:
+        hosted_zone_id = aws_get_hosted_zone_id()
+        response = dns_client.test_dns_answer(
+            HostedZoneId=hosted_zone_id,
+            RecordName=hostname,
+            RecordType='A'
+        )
+        result = response
+    except Exception as e:
+        result = e
 
-	r = requests.delete(url=dns_api_url + ip, data=data, verify=False)
+    return result
 
-	return r
+
+def dnsDisplayName(instance_id, ip):
+
+    """This method is called to render the endpoint/instance in an intuitive manner"""
+
+    result = None
+
+    hostname = get_hostname(instance_id)
+    test_func = globals()['{}_test_dns'.format(DNS_SERVICE.lower())]
+    test_response = test_func(hostname)
+    if 'ResponseCode' in test_response and \
+                    test_response['ResponseCode'] == 'NOERROR':
+        result = hostname
+    else:
+        result = ip
+
+    return result
+
+
+def createDnsEntry(instance_id, ip):
+
+    """This method is called when an instance is created to create a dns entry."""
+    result = None
+
+    try:
+        update_func = globals()['{}_update_dns_record'.format(DNS_SERVICE.lower())]
+        result = update_func('create', instance_id, ip)
+    except Exception as e:
+        result = e
+
+    return result
+
+
+def deleteDnsEntry(instance_id, ip):
+
+    """This method is called when an instance is destroyed to remove a dns entry."""
+
+    result = None
+
+    try:
+        update_func = globals()['{}_update_dns_record'.format(DNS_SERVICE.lower())]
+        result = update_func('delete', instance_id, ip)
+    except Exception as e:
+        result = e
+
+    return result

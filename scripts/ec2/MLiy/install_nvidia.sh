@@ -32,4 +32,4 @@ timeout=10
 ' > /etc/yum.repos.d/amzn-graphics.repo
 
 retry yum clean all
-retry yum install -y -q nvidia
+retry yum install -y -q nvidia patch

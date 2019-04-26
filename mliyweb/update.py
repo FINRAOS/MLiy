@@ -1,18 +1,21 @@
 """
 The update thread that pulls and syncs data from AWS
 """
-from .dns import createDnsEntry, dnsDisplayName
-from .models import Instance, Volume, Software_Config, Tag, BillingData, LastRefreshed
+from .dns import createDnsEntry, dnsDisplayName, deleteDnsEntry
+from .models import Instance, Volume, Software_Config, Tag, BillingData, LastRefreshed, Cluster
 import dateutil.parser as dparser
 from .settings import AWS_REGION, DISPLAY_PUBLIC_IP, RETRY_PROGRESSION, RETRY_LIMIT, RETRY_DELAY, AWS_MAX_RETRIES, AWS_TIMEOUT
 from datetime import datetime, timedelta
 from pytz import timezone
 import threading
-from botocore.client import Config
 import boto3
 import logging
 import time
+from .plugin import runAllFunctions
 from botocore.client import Config
+from django.db.models import Q
+import time
+import re
 '''
 Copyright 2017 MLiy Contributors
 
@@ -30,7 +33,17 @@ limitations under the License.
 
 '''
 
-
+def runUpdatePlugins(instance_id, instance_model):
+	logger = logging.getLogger(runUpdatePlugins.__name__)
+	try:
+		try:
+			results = runAllFunctions("updatePlugin","plugin",{},instance_id,instance_model)
+			return results
+		except NameError:
+			logger.error("did not find any implementation")
+	except Exception as e:
+		logger.exception(e)
+		return None
 
 def updateRefreshTime():
 	pdate = LastRefreshed.load()[0]
@@ -39,6 +52,7 @@ def updateRefreshTime():
 
 
 tlock = threading.Lock()
+clock = threading.Lock()
 
 class InstanceUpdateThread(threading.Thread):
 	"""
@@ -238,7 +252,7 @@ class InstanceUpdateThread(threading.Thread):
 					)
 		except Exception as e:
 			logger.error("Failed to get volumes for instance " + str(cur_inst.instance_id))
-			logger.error("This is probably due to malformed AWS responce or failed DB connection")
+			logger.error("This is probably due to malformed AWS response or failed DB connection")
 			logger.exception(e)
 
 	def update_tags(self,logger,cur_inst,instance):
@@ -395,6 +409,12 @@ class InstanceUpdateThread(threading.Thread):
 				logger.exception(e)
 
 			try:
+				runUpdatePlugins(cur_inst.instance_id,cur_inst)
+			except Exception as e:
+				logger.error("Had an issue with one of the plugins")
+				logger.exception(e)
+
+			try:
 				cur_inst.archived = False
 				cur_inst.updated_at = update_time
 				# DB Write
@@ -410,9 +430,9 @@ class InstanceUpdateThread(threading.Thread):
 		out_of_sync_instances = None
 
 		if user is not None:
-			out_of_sync_instances = Instance.objects.filter(owner__iexact=user, updated_at__lte=str(update_begin_time))
+			out_of_sync_instances = Instance.objects.filter(owner__iexact=user,archived=False, updated_at__lte=str(update_begin_time))
 		else:
-			out_of_sync_instances = Instance.objects.filter(updated_at__lte=str(update_begin_time))
+			out_of_sync_instances = Instance.objects.filter(updated_at__lte=str(update_begin_time),archived=False)
 
 		out_of_sync_instances.update(state="out of sync")
 
@@ -440,11 +460,128 @@ class InstanceUpdateThread(threading.Thread):
 		Tried being nice with the boto api - will just delete instances
 		that no longer have the correct tags.
 		"""
-		numt = 0
-		(num, t) = Instance.objects.filter(state__contains='shutting-down').delete()
-		numt += num
-		(num, t) = Instance.objects.filter(state__contains='termin').delete()
-		numt += num
-		self.logger.debug("Clearing %d instances from db.", numt)
+		self.logger.debug("Archiving instances in db...")
+		purge_count = 0
+		purge_items = Instance.objects.filter(
+			Q(archived=False) &
+			Q(state__contains='shutting-down') |
+			Q(state__contains='termin') |
+			(Q(instance_id__contains="Error"))
+			)
+		for item in purge_items:
+			purge_count += 1
+			item.archived = True
+			item.save()
+		self.logger.debug("Archived %d instances in db.", purge_count)
 
-	# delete all dns data for stale isntances
+	# delete all dns data for stale instances
+
+
+class ClusterUpdateThread(threading.Thread):
+	'''
+	This thread updates the instance data in the database,
+	and then purges stale entries.
+	'''
+	updateTime = None
+
+	def __init__(self):
+		super().__init__(group=None, target=None, name=None, args=(), kwargs=None, daemon=None)
+		self.logger = logging.getLogger("mliyweb.views.ClusterUpdateThread")
+
+	def run(self):
+		self.logger.debug("Cluster Update thread started.")
+
+		if not clock.acquire(blocking=False):
+			self.logger.debug("---> Update thread already running, quitting.")
+			return
+		try:
+			self.update_clusters()
+			self.logger.debug("Cluster Update thread finished.")
+		except Exception as e:
+			self.logger.error(e)
+		finally:
+			clock.release()
+
+	def update_dns(self, logger, ip_address, cluster):
+		# DNS Entry
+		try:
+			logger.debug("cluster: Entering DNS Stage of update thread for cluster " + str(cluster.cluster_id.lower()))
+			# If the current display is nothing but we have an ip, assign the cluster the new ip and dns url
+			if cluster.dns_url is None or cluster.dns_url == '' or len(cluster.dns_url) == 0:
+				if ip_address is not None:
+					logger.debug("cluster: Determined it is necessary to create DNS entry for cluster. ")
+					cluster.master_ip = ip_address
+					createDnsEntry(cluster.cluster_id.lower(), ip_address)
+					logger.debug("cluster: Executed DNS Plugin CreateDnsEntry")
+					cluster.dns_url = dnsDisplayName(cluster.cluster_id.lower(), ip_address)
+					logger.debug("Set the cluster DNS to " + str(cluster.dns_url))
+		except Exception as e:
+			logger.debug("cluster: Failed to create DNS entry for the cluster!" + str(cluster.cluster_id.lower()))
+			logger.exception(e)
+
+		try:
+			if cluster.dns_url is None or cluster.dns_url == cluster.master_ip or len(cluster.dns_url) == 0:
+				logger.debug("cluster: Determined it is necessary to update DNS entry for the cluster.")
+				cluster.dns_url = dnsDisplayName(cluster.cluster_id.lower(), cluster.master_ip)
+				logger.debug("cluster: Set the cluster DNS to " + str(cluster.dns_url))
+		except Exception as e:
+			logger.error("cluster: Failed to set the cluster DNS for " + str(cluster.cluster_id.lower()))
+			logger.exception(e)
+
+	def update_clusters(self):
+		clusters = Cluster.objects.all()
+
+		for cluster in clusters:
+			client = boto3.client('emr', region_name=AWS_REGION)
+			try:
+				if cluster.state == 'CREATE_IN_PROGRESS':
+					continue
+
+				clstr_id = cluster.cluster_id
+				response = client.describe_cluster(ClusterId=clstr_id)
+				cluster.state = response['Cluster']['Status']['State']
+
+				response = client.list_instance_groups(ClusterId=clstr_id)
+				inst_groups = response['InstanceGroups']
+				nodes_count = 0
+				for grp in inst_groups:
+					nodes_count = nodes_count + grp['RunningInstanceCount']
+				cluster.node_count = nodes_count
+				cluster.update_time = datetime.now(timezone('UTC'))
+
+				# Make sure that the DNS entry is being made from the cluster id
+				if re.match('^j-\w{12}', cluster.cluster_id):
+					logging.debug("cluster: Running DNS update")
+					self.update_dns(self.logger, cluster.master_ip, cluster)
+
+				cluster.save()
+
+			except Exception as e:
+				# remove cluster cloudformation stack
+				cloudformation = boto3.client('cloudformation', region_name=AWS_REGION)
+				if "Error" not in cluster.cluster_id:
+					cloudformation.delete_stack(StackName=cluster.stack_id)
+
+				# remove cluster database entry
+				if cluster.state == 'COMPLETED' or cluster.state == 'FAILED' or cluster.state == 'TERMINATED':
+					logging.debug("cluster: Deleting cluster.")
+					bill = cluster.current_bill
+					if (bill != None):
+						bill.ongoing = False
+						bill.end_time = datetime.now(timezone('UTC'))
+						bill.save()
+					deleteDnsEntry(cluster.cluster_id, cluster.master_ip)
+					cluster.delete()
+				else:
+					logging.debug("cluster: Error: Deleting Cluster")
+					cluster.state = "An Error has occurred"
+					update_time = datetime.now(timezone('UTC'))
+					self.logger.debug("Time spent" + str((update_time - cluster.updated_at).seconds))
+					if (cluster.state == "An Error has occurred" and (update_time - cluster.updated_at).seconds > 3600):
+						bill = cluster.current_bill
+						if (bill != None):
+							bill.ongoing = False
+							bill.end_time = datetime.now(timezone('UTC'))
+							bill.save()
+						deleteDnsEntry(cluster.cluster_id, cluster.master_ip)
+						cluster.delete()

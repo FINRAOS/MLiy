@@ -20,8 +20,7 @@ set -xv
 export PS4='+(${BASH_SOURCE}:${LINENO}): ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
 
 # BEGIN Global Variables
-export SDLC='DEV'
-[[ ! -z "${MANAGER_HOSTNAME}" ]] && mliymgr_url="https://${MANAGER_HOSTNAME}"
+[[ ! -z "${MANAGER_HOSTNAME}" ]] && mliymgr_url="https://${MANAGER_HOSTNAME}/ajax/progress"
 
 # END Global Variables
 
@@ -55,6 +54,10 @@ stack_name=$(retry aws ec2 describe-instances --instance-ids $instanceid --query
 
 /bin/bash -xv /root/bootstrap > /var/log/all/bootstrap.log  2>&1
 
+if [[ $itype == g2 || $itype == p2 ||  $itype == p3 ]] ; then
+	export GPU_TYPE='Yes'
+fi
+
 # Set up base environment
 cat >> /etc/environment <<EOF
 export TMP=/ext/home/tmp
@@ -63,14 +66,14 @@ export TZ="${TIME_ZONE}"
 EOF
 
 
-[[ ! -z "$mliymgr_url" ]] && curl -k "${mliymgr_url}/ajax/progress/${instanceid}/mounting_ebs_filesystem(10)"
+[[ ! -z "$mliymgr_url" ]] && curl -k "${mliymgr_url}/${instanceid}/mounting_ebs_filesystem(10)"
 
 source ./setup_ebs_volume.sh
 
-[[ ! -z "$mliymgr_url" ]] && curl -k "${mliymgr_url}/ajax/progress/${instanceid}/creating_analyst_user(20)"
+[[ ! -z "$mliymgr_url" ]] && curl -k "${mliymgr_url}/${instanceid}/creating_analyst_user(20)"
 source ./setup_analyst.sh
 
-[[ ! -z "$mliymgr_url" ]] && curl -k "${mliymgr_url}/ajax/progress/${instanceid}/installing_system_software(40)"
+[[ ! -z "$mliymgr_url" ]] && curl -k "${mliymgr_url}/${instanceid}/installing_system_software(30)"
 
 source ./install_yum_packages.sh
 
@@ -87,14 +90,16 @@ echo `echo 0 | alternatives --config gfortran 2>/dev/null | grep 'gfortran48' | 
 cat /tmp/no_of_gfortran_versions.txt | alternatives --config gfortran
 
 # Copy base packages from S3
-[[ ! -z "$mliymgr_url" ]] && curl -k "${mliymgr_url}/ajax/progress/${instanceid}/downloading_packages(50)"
+[[ ! -z "$mliymgr_url" ]] && curl -k "${mliymgr_url}/${instanceid}/downloading_packages(40)"
 # Change to Analyst home directory to install/configure
 cd ~analyst
 packages=s3://$SOURCE_BUCKET
 retry aws s3 sync $packages . --exclude $SOURCE_PACKAGE --quiet
 cd $SCRIPT_DIR
+# Download packages from the internet
+bash ./install_packages.sh #Script may need proxy to download packages from the Internet
 
-[[ ! -z "$mliymgr_url" ]] && curl -k "${mliymgr_url}/ajax/progress/${instanceid}/installing_base_packages(60)"
+[[ ! -z "$mliymgr_url" ]] && curl -k "${mliymgr_url}/${instanceid}/installing_base_packages(50)"
 
 # Setup Python
 [[ ! -z "$PyPi_REPO" ]] && source ./setup_pip.sh
@@ -103,26 +108,27 @@ pip install --upgrade awscli
 cp $SCRIPT_DIR/requirements.py2 ~analyst/
 cp $SCRIPT_DIR/requirements.py3 ~analyst/
 
-bash ./install_packages.sh
-
 # Setup R
 [[ ! -z "$CRAN_REPO" ]] && source ./setup_cran.sh
-bash ./install_R.sh
+bash ./install_R.sh #Script may need proxy to download packages from the Internet
 
-[[ ! -z "$mliymgr_url" ]] && curl -k "${mliymgr_url}/ajax/progress/${instanceid}/configuring_base_packages(70)"
+[[ ! -z "$mliymgr_url" ]] && curl -k "${mliymgr_url}/${instanceid}/configuring_base_packages(60)"
 [[ ! -z "$LDAP_HOST_NAME" ]] && source ./setup_ldap.sh
+
 source ./setup_rstudio.sh
 source ./setup_rshiny.sh
-bash ./setup_torch.sh
+
 source ./setup_apache.sh
 [[ ! -z "$CUSTOM_ROOT_CERTS" ]] && source ./setup_root_certs.sh
 source ./setup_aws.sh
 
 source ./setup_odbc.sh
 
-if [[ $itype == g2 || $itype == p2 ]] ; then
+source ./setup_sparkmagic.sh
 
-[[ ! -z "$mliymgr_url" ]] && curl -k "${mliymgr_url}/ajax/progress/${instanceid}/installing_gpu_packages(80)"
+if [[ ! -z $GPU_TYPE ]] ; then
+
+[[ ! -z "$mliymgr_url" ]] && curl -k "${mliymgr_url}/${instanceid}/installing_gpu_packages(70)"
 source ./install_nvidia.sh
 
 # Set Default GCC to version 4.8
@@ -132,6 +138,8 @@ cat /tmp/no_of_gcc_versions.txt | alternatives --config gcc
 source ./install_cuda.sh
 
 source ./setup_theano.sh
+
+bash ./setup_torch.sh #Script may need proxy to download packages from the Internet
 
 fi
 
@@ -144,6 +152,7 @@ chown -R analyst ~analyst
 chgrp -R analyst ~analyst
 chmod 775 -R ~analyst
 
+[[ ! -z "$mliymgr_url" ]] && curl -k "${mliymgr_url}/${instanceid}/setting_analyst_environment(80)"
 # Run setup script as user analyst
 su - analyst -c ~analyst/setup.sh
 
@@ -155,6 +164,6 @@ source ./clean_up.sh
 # Send signal to Cloudformation
 /opt/aws/bin/cfn-signal -e $? --stack $stack_name --resource EC2Instance --region $AWS_DEFAULT_REGION
 
-[[ ! -z "$mliymgr_url" ]] && curl -k "${mliymgr_url}/ajax/progress/${instanceid}/rebooting_MLiy(90)"
+[[ ! -z "$mliymgr_url" ]] && curl -k "${mliymgr_url}/${instanceid}/rebooting_MLiy(90)"
 
 shutdown -r now

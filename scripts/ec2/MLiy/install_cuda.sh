@@ -18,6 +18,10 @@
 # Change to Analyst home directory to install/configure 
 cd ~analyst
 
+# Set Default GCC to version 4.8
+echo `echo 0 | alternatives --config gcc 2>/dev/null | grep 'gcc48' | awk '{print $1}' | tail -1` >  /tmp/no_of_gcc_versions.txt
+cat /tmp/no_of_gcc_versions.txt | alternatives --config gcc
+
 # Install NVIDIA CUDA Toolkit 9.0		 
 bash ./cuda_9.0.176_384.81_linux-run --silent --toolkit --samples > /dev/null
 bash ./cuda_9.0.176.1_linux-run --silent --accept-eula > /dev/null
@@ -30,5 +34,8 @@ rm -f cuda_9.0.176_384.81_linux-run cuda_9.0.176.1_linux-run cuda_9.0.176.2_linu
 tar -xzf cudnn-9.0-linux-x64-v7.tgz -C /usr/local  && rm -f cudnn-9.0-linux-x64-v7.tgz
 
 ldconfig
+
+# NCCL 2.2.13
+tar -xf nccl_2.2.13-1+cuda9.0_x86_64.txz -C /usr/local && rm -f nccl_2.2.13-1+cuda9.0_x86_64.txz
 
 cd $SCRIPT_DIR

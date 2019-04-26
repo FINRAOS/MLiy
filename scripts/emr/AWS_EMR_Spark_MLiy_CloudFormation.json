@@ -1,0 +1,639 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Description": "AWS CloudFormation Template for SPARK Data Science Cluster.\nCopyright 2017 MLiy Contributors\nLicensed under the Apache License, Version 2.0 (the \"License\");\nyou may not use this file except in compliance with the License.\nYou may obtain a copy of the License at\nhttp://www.apache.org/licenses/LICENSE-2.0\nUnless required by applicable law or agreed to in writing, software\ndistributed under the License is distributed on an \"AS IS\" BASIS,\nWITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.\nSee the License for the specific language governing permissions and\nlimitations under the License.",
+  "Parameters": {
+    "paramClusterName": {
+      "Description": "Name of the EMR Cluster",
+      "Type": "String",
+      "MinLength": "20",
+      "MaxLength": "40",
+      "AllowedPattern": "[a-zA-Z0-9\\-]+"
+    },
+    "paramReleaseLabel": {
+      "Description": "EMR Release Version",
+      "Type": "String",
+      "AllowedPattern": "emr-[0-9]+\\.[0-9]+\\.[0-9]+",
+      "Default": "emr-5.21.0"
+    },
+    "paramEnvironment": {
+      "Description": "SDLC: DEV|QA|PRODY|PROD",
+      "Type": "String",
+      "Default": "dev"
+    },
+    "paramTimeZone": {
+      "Description": "Time Zone of the Cluster",
+      "Type": "String",
+      "Default": "America/New_York"
+    },
+    "paramAGS": {
+      "Description": "Application Gold Source or Customer Name",
+      "Type": "String"
+    },
+    "paramInstanceType": {
+      "Description": "EC2 Instance Type",
+      "Type": "String",
+      "Default": "r4.4xlarge"
+    },
+    "paramCoreInstanceCount": {
+      "Description": "Number of Core Instances",
+      "Type": "Number",
+      "Default": "2",
+      "MinValue": "1",
+      "MaxValue": "240"
+    },
+    "paramTaskInstanceCount": {
+      "Description": "Number of Task Instances",
+      "Type": "Number",
+      "Default": "2",
+      "MinValue": "0",
+      "MaxValue": "240"
+    },
+    "paramBidPrice": {
+      "Description": "Maximum spot price to set",
+      "Type": "Number",
+      "Default": "1.064",
+      "MinValue": "0.01",
+      "MaxValue": "12"
+    },
+    "paramMarketType": {
+      "Description": "Market: ON_DEMAND|SPOT",
+      "Type": "String",
+      "Default": "SPOT",
+      "AllowedValues": [
+        "ON_DEMAND",
+        "SPOT"
+      ]
+    },
+    "paramSubnetID": {
+      "Description": "Subnet ID to launch the cluster on",
+      "Type": "AWS::EC2::Subnet::Id"
+    },
+    "paramEMRManagedMasterSecurityGroup": {
+      "Description": "EMR Managed Master Security Group ID",
+      "Type": "AWS::EC2::SecurityGroup::Id"
+    },
+    "paramEMRManagedSlaveSecurityGroup": {
+      "Description": "EMR Managed Slave Security Group ID",
+      "Type": "AWS::EC2::SecurityGroup::Id"
+    },
+    "paramAdditionalMasterSecurityGroups": {
+      "Description": "List of Additional Master Security Group ID",
+      "Type": "List<AWS::EC2::SecurityGroup::Id>"
+    },
+    "paramAdditionalSlaveSecurityGroups": {
+      "Description": "List of Additional Slave Security Group ID",
+      "Type": "List<AWS::EC2::SecurityGroup::Id>"
+    },
+    "paramServiceRole": {
+      "Description": "EMR Service Role",
+      "Type": "String"
+    },
+    "paramJobFlowRole": {
+      "Description": "EC2 Instance Role",
+      "Type": "String"
+    },
+    "paramEc2KeyName": {
+      "Description": "EC2 Key Pair Name",
+      "Type": "String"
+    },
+    "paramSecurityConfiguration": {
+      "Description": "Name of the Security Configuration to apply",
+      "Type": "String"
+    },
+    "paramLogURI": {
+      "Description": "Bucket to store EMR Log Files",
+      "Type": "String"
+    },
+    "paramYarnLogURI": {
+      "Description": "Bucket to store EMR Yarn Log Files",
+      "Type": "String"
+    },
+    "paramLdapFqdn": {
+      "Description": "LDAP Fully Qualified Domain Name",
+      "Type": "String"
+    },
+    "paramLdapIp": {
+      "Description": "LDAP IP Address",
+      "Type": "String"
+    },
+    "paramLdapBaseDn": {
+      "Description": "LDAP Base Distinguished Name",
+      "Type": "String"
+    },
+    "paramLdapUserRdn": {
+      "Description": "LDAP User Relative Distinguished Name",
+      "Type": "String"
+    },
+    "paramLdapSvcRdn": {
+      "Description": "LDAP Service User Relative Distinguished Name",
+      "Type": "String"
+    },
+    "paramLdapSvcUser": {
+      "Description": "LDAP Service User",
+      "Type": "String"
+    },
+    "paramLdapGroup": {
+      "Description": "LDAP Authorization Group",
+      "Type": "String"
+    },
+    "paramLdapGroupRdn": {
+      "Description": "LDAP Authorization Group Relative Distinguished Name",
+      "Type": "String"
+    },
+    "paramAWSProxyHost": {
+      "Description": "DNS or IP address of AWS Proxy",
+      "Type": "String"
+    },
+    "paramAWSProxyPort": {
+      "Description": "Port Number to use for AWS Proxy",
+      "Type": "Number"
+    },
+    "paramYumServerHost": {
+      "Description": "Yum Server DNS or IP address",
+      "Type": "String"
+    },
+    "paramYumServerPort": {
+      "Description": "Yum Server Port Number",
+      "Type": "Number"
+    },
+    "paramYumServerPrefix": {
+      "Description": "Yum Server Prefix",
+      "Type": "String"
+    },
+    "paramInstallBucket": {
+      "Description": "Bucket containing installation scripts and artifacts: s3://mys3bucket",
+      "Type": "String"
+    },
+	"paramJupyterBucket" :	{
+		"Description" : "Bucket containing user home folders and Jupyter notebooks",
+		"Type" : "String"
+	},
+    "paramBootstrapScript": {
+      "Description": "S3 Prefix within paramInstallBucket containing bootstrap script: PREFIX/emr/spark/bootstrap_spark.sh",
+      "Type": "String"
+    },
+    "paramStepScript": {
+      "Description": "S3 Prefix within paramInstallBucket containing step script: PREFIX/emr/spark/step_ndp.sh",
+      "Type": "String"
+    },
+    "paramCertFile": {
+      "Description": "S3 URL for Zip file containing SSL Cert files",
+      "Type": "String"
+    },
+    "paramInstallSecretsCMD":{
+      "Description": "Command to install a secrets manager, used in the bootstrap script",
+      "Type": "String",
+      "Default": "NONE"
+    },
+    "paramRunSecretsCMD": {
+      "Description": "Command to run secrets manager, used in step script",
+      "Type": "String",
+      "Default": "NONE"
+    },
+    "paramSsmDocument": {
+      "Description": "Name of the AWS SSM Document allowing download of jar/zip file to EMR nodes",
+      "Type": "String"
+    },
+    "paramMliyTargzFile": {
+      "Description": "S3 Prefix within paramInstallBucket containing MLiy tar.gz: PREFIX/mliyweb.tar.gz",
+      "Type": "String"
+    }
+  },
+  "Mappings": {
+    "VARS": {
+      "GLOBAL": {
+        "jarRunner": "s3://elasticmapreduce/libs/script-runner/script-runner.jar"
+      }
+    }
+  },
+  "Conditions": {
+    "setBidPrice": {
+      "Fn::Equals": [
+        {
+          "Ref": "paramMarketType"
+        },
+        "SPOT"
+      ]
+    },
+    "createTaskGroup": {
+      "Fn::Not": [
+        {
+          "Fn::Equals": [
+            {
+              "Ref": "paramTaskInstanceCount"
+            },
+            "0"
+          ]
+        }
+      ]
+    }
+  },
+  "Resources": {
+    "SPARK": {
+      "Type": "AWS::EMR::Cluster",
+      "Properties": {
+        "Applications": [
+          {
+            "Name": "JupyterHub"
+          },
+          {
+            "Name": "Ganglia"
+          }
+        ],
+        "BootstrapActions": [
+          {
+            "Name": "setup-spark",
+            "ScriptBootstrapAction": {
+              "Args": [
+                "--time_zone",
+                {
+                  "Ref": "paramTimeZone"
+                },
+                "--proxy_server",
+                {
+                  "Ref": "paramAWSProxyHost"
+                },
+                "--proxy_port",
+                {
+                  "Ref": "paramAWSProxyPort"
+                },
+                "--pkg_url",
+                {
+                  "Ref": "paramInstallBucket"
+                },
+                "--yum_server",
+                {
+                  "Ref": "paramYumServerHost"
+                },
+                "--yum_port",
+                {
+                  "Ref": "paramYumServerPort"
+                },
+                "--yum_prefix",
+                {
+                  "Ref": "paramYumServerPrefix"
+                },
+                "--aws_region",
+                {
+                  "Ref": "AWS::Region"
+                },
+                "--ags",
+                {
+                  "Ref": "paramAGS"
+                },
+                "--sdlc",
+                {
+                  "Ref": "paramEnvironment"
+                },
+                "--instance_role",
+                {
+                  "Ref": "paramJobFlowRole"
+                },
+                "--install_secrets_cmd",
+                {
+                  "Ref": "paramInstallSecretsCMD"
+                }
+              ],
+              "Path": {
+                "Fn::Join": [
+                  "/",
+                  [
+                    {
+                      "Ref": "paramInstallBucket"
+                    },
+                    {
+                      "Ref": "paramBootstrapScript"
+                    }
+                  ]
+                ]
+              }
+            }
+          },
+          {
+            "Name": "setup-splunk",
+            "ScriptBootstrapAction": {
+              "Args": [],
+              "Path": {
+                "Fn::Join": [
+                  "/",
+                  [
+                    {
+                      "Ref": "paramInstallBucket"
+                    },
+                    "Splunk/Bootstrap/splunk_selfextract.bsx"
+                  ]
+                ]
+              }
+            }
+          }
+        ],
+        "Configurations": [
+          {
+            "Classification": "mapred-site",
+            "ConfigurationProperties": {
+              "mapred.local.dir": "/mnt/tmp/mapreduce.cluster.local.dir",
+              "mapreduce.cluster.local.dir": "/mnt/tmp/mapreduce.cluster.local.dir"
+            }
+          },
+          {
+            "Classification": "core-site",
+            "ConfigurationProperties": {
+              "hadoop.tmp.dir": "/mnt/tmp/hadoop.tmp.dir",
+              "fs.s3.buffer.dir": "/mnt/tmp/fs.s3.buffer.dir",
+              "hadoop.proxyuser.livy.groups": "*",
+              "hadoop.proxyuser.livy.hosts": "*"
+            }
+          },
+          {
+            "Classification": "hdfs-site",
+            "ConfigurationProperties": {
+              "dfs.datanode.data.dir": "file:///mnt/tmp/dfs.datanode.data.dir",
+              "dfs.data.dir": "/mnt/tmp/dfs.datanode.data.dir",
+              "dfs.namenode.name.dir": "file:///mnt/tmp/dfs.namenode.name.dir",
+              "dfs.replication": "3",
+              "dfs.name.dir": "/mnt/tmp/dfs.namenode.name.dir"
+            }
+          },
+          {
+            "Classification": "yarn-site",
+            "ConfigurationProperties": {
+              "yarn.app.mapreduce.am.labels": "CORE,TASK",
+              "yarn.nodemanager.local-dirs": "/mnt/tmp/yarn.nodemanager.local-dirs",
+              "yarn.log-aggregation-enable": "true",
+              "yarn.log-aggregation.retain-seconds": "-1",
+              "spark.yarn.preserve.staging.files": "true",
+              "yarn.nodemanager.delete.debug-delay-sec": "36000",
+              "yarn.nodemanager.remote-app-log-dir": {
+                "Ref": "paramYarnLogURI"
+              }
+            }
+          },
+		  {
+			"Classification": "jupyter-s3-conf",
+			"ConfigurationProperties": {
+				"s3.persistence.enabled": "true",
+				"s3.persistence.bucket": { "Ref" : "paramJupyterBucket"}
+			}
+		  },
+          {
+            "Classification": "livy-conf",
+            "ConfigurationProperties": {
+              "livy.impersonation.enabled": "false"
+            }
+          },
+          {
+            "Classification": "spark",
+            "ConfigurationProperties": {
+              "maximizeResourceAllocation": "true"
+            }
+          }
+        ],
+        "Instances": {
+          "EmrManagedMasterSecurityGroup": {
+            "Ref": "paramEMRManagedMasterSecurityGroup"
+          },
+          "AdditionalMasterSecurityGroups": {
+            "Ref": "paramAdditionalMasterSecurityGroups"
+          },
+          "EmrManagedSlaveSecurityGroup": {
+            "Ref": "paramEMRManagedSlaveSecurityGroup"
+          },
+          "AdditionalSlaveSecurityGroups": {
+            "Ref": "paramAdditionalSlaveSecurityGroups"
+          },
+          "Ec2KeyName": {
+            "Ref": "paramEc2KeyName"
+          },
+          "Ec2SubnetId": {
+            "Ref": "paramSubnetID"
+          },
+          "TerminationProtected": "false",
+          "MasterInstanceGroup": {
+            "Name": "MASTER",
+            "BidPrice": {
+              "Fn::If": [
+                "setBidPrice",
+                {
+                  "Ref": "paramBidPrice"
+                },
+                {
+                  "Ref": "AWS::NoValue"
+                }
+              ]
+            },
+            "Configurations": [],
+            "InstanceType": {
+              "Ref": "paramInstanceType"
+            },
+            "InstanceCount": 1,
+            "Market": {
+              "Ref": "paramMarketType"
+            }
+          },
+          "CoreInstanceGroup": {
+            "Name": "CORE",
+            "BidPrice": {
+              "Fn::If": [
+                "setBidPrice",
+                {
+                  "Ref": "paramBidPrice"
+                },
+                {
+                  "Ref": "AWS::NoValue"
+                }
+              ]
+            },
+            "Configurations": [],
+            "InstanceType": {
+              "Ref": "paramInstanceType"
+            },
+            "InstanceCount": {
+              "Ref": "paramCoreInstanceCount"
+            },
+            "Market": {
+              "Ref": "paramMarketType"
+            }
+          }
+        },
+        "JobFlowRole": {
+          "Ref": "paramJobFlowRole"
+        },
+        "LogUri": {
+          "Ref": "paramLogURI"
+        },
+        "Name": {
+          "Ref": "paramClusterName"
+        },
+        "ReleaseLabel": {
+          "Ref": "paramReleaseLabel"
+        },
+        "SecurityConfiguration": {
+          "Ref": "paramSecurityConfiguration"
+        },
+        "ServiceRole": {
+          "Ref": "paramServiceRole"
+        },
+        "VisibleToAllUsers": true
+      }
+    },
+    "TaskInstanceGroup": {
+      "Type": "AWS::EMR::InstanceGroupConfig",
+      "Condition": "createTaskGroup",
+      "Properties": {
+        "Name": "TASK",
+        "BidPrice": {
+          "Fn::If": [
+            "setBidPrice",
+            {
+              "Ref": "paramBidPrice"
+            },
+            {
+              "Ref": "AWS::NoValue"
+            }
+          ]
+        },
+        "Configurations": [],
+        "InstanceType": {
+          "Ref": "paramInstanceType"
+        },
+        "InstanceCount": {
+          "Ref": "paramTaskInstanceCount"
+        },
+        "InstanceRole": "TASK",
+        "Market": {
+          "Ref": "paramMarketType"
+        },
+        "JobFlowId": {
+          "Ref": "SPARK"
+        }
+      }
+    },
+    "CONFIGSTEP": {
+      "Type": "AWS::EMR::Step",
+      "Properties": {
+        "ActionOnFailure": "CONTINUE",
+        "HadoopJarStep": {
+          "Args": [
+            {
+              "Fn::Join": [
+                "/",
+                [
+                  {
+                    "Ref": "paramInstallBucket"
+                  },
+                  {
+                    "Ref": "paramStepScript"
+                  }
+                ]
+              ]
+            },
+            "--ags",
+            {
+              "Ref": "paramAGS"
+            },
+            "--sdlc",
+            {
+              "Ref": "paramEnvironment"
+            },
+            "--cert_file",
+            {
+              "Ref": "paramCertFile"
+            },
+            "--ldap_fqdn",
+            {
+              "Ref": "paramLdapFqdn"
+            },
+            "--ldap_ip",
+            {
+              "Ref": "paramLdapIp"
+            },
+            "--ldap_base_dn",
+            {
+              "Ref": "paramLdapBaseDn"
+            },
+            "--ldap_user_rdn",
+            {
+              "Ref": "paramLdapUserRdn"
+            },
+            "--ldap_svc_rdn",
+            {
+              "Ref": "paramLdapSvcRdn"
+            },
+            "--ldap_svc_user",
+            {
+              "Ref": "paramLdapSvcUser"
+            },
+            "--ldap_group",
+            {
+              "Ref": "paramLdapGroup"
+            },
+            "--ldap_group_rdn",
+            {
+              "Ref": "paramLdapGroupRdn"
+            },
+            "--run_secrets_cmd",
+            {
+              "Ref": "paramRunSecretsCMD"
+            },
+            "--jupyter_bucket",
+            {
+              "Ref": "paramJupyterBucket"
+            },
+            "--ssm_document",
+            {
+              "Ref": "paramSsmDocument"
+            },
+            "--mliy_targz_file",
+            {
+              "Fn::Join": [
+                "/",
+                [
+                  {
+                    "Ref": "paramInstallBucket"
+                  },
+                  {
+                    "Ref": "paramMliyTargzFile"
+                  }
+                ]
+              ]
+            }
+          ],
+          "Jar": {
+            "Fn::FindInMap": [
+              "VARS",
+              "GLOBAL",
+              "jarRunner"
+            ]
+          }
+        },
+        "JobFlowId": {
+          "Ref": "SPARK"
+        },
+        "Name": "setup-cluster"
+      },
+      "DependsOn": [
+        "SPARK"
+      ]
+    }
+  },
+  "Outputs": {
+    "StackID": {
+      "Value": {
+        "Ref": "AWS::StackName"
+      }
+    },
+    "ClusterID": {
+      "Value": {
+        "Ref": "SPARK"
+      }
+    },
+    "MasterDNS": {
+      "Value": {
+        "Fn::GetAtt": [
+          "SPARK",
+          "MasterPublicDNS"
+        ]
+      }
+    }
+  }
+}

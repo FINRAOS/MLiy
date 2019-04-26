@@ -207,4 +207,5 @@ MLiy uses data and format from www.ec2instances.info:
 
 Replace the instances.json file in [mliyweb/fixtures]. This should work unless the format has changed.
 
+
 [mliyweb/fixtures]:../mliyweb/fixtures

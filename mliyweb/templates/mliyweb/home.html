@@ -35,7 +35,7 @@ limitations under the License. -->
             <div class="col-xs-6 col-sm-3 placeholder">
               <canvas id="globalinstancestates" width="200" height="200"></canvas>
               <h4>All instances</h4>
-              <span class="text-muted">All instances managed by MLIY</span>
+              <span class="text-muted">All instances managed by MLiy</span>
             </div>
 <!--             <div class="col-xs-6 col-sm-3 placeholder">
               <img data-src="holder.js/200x200/auto/vine" class="img-responsive" alt="Generic placeholder thumbnail">
@@ -46,10 +46,10 @@ limitations under the License. -->
           <div id="last-refresh" class="mx-auto pull-right refresh-button"><span class="glyphicon glyphicon-refresh"></span> <span id="last-refresh-text" class="refresh-button-text">Refresh Status</span></div>
           {% if ec2access %}
             <h2 class="sub-header" id="instlist">All Instances</h2>
-            
+
             <div class="table-responsive">
               <table class="table table-striped">
-                <thead>
+                <thead id ="instancehead">
                   <tr>
                     <th>ID</th>
                     <th>Type</th>
@@ -67,15 +67,42 @@ limitations under the License. -->
                     <td></td>
                     <td>(this might take 20 seconds or more) </td>
                     <td></td>
+                    <td></td>
                   </tr>
                   <tr>
                   <td colspan=4><img src="/static/ajax-loader.gif"></td>
                   </tr>
-                  
+
                 </tbody>
               </table>
             {% endif %}
-            
+            {% if emraccess %}
+              <h2 class="sub-header" id="clustlist">All Clusters</h2>
+              <table class="table table-striped">
+                <thead>
+                  <tr>
+                    <th>ID</th>
+                    <th>Purpose</th>
+                    <th>State</th>
+                    <th>IP</th>
+                    <th>Nodes</th>
+                  </tr>
+                </thead>
+                <tbody id="clusters">
+                  <tr>
+                    <td>Loading</td>
+                    <td>Please</td>
+                    <td>Wait</td>
+                    <td>(this might take 20 seconds or more) </td>
+                    <td></td>
+                  </tr>
+                  <tr>
+                  <td colspan=4><img src="/static/ajax-loader.gif"></td>
+                  </tr>
+
+                </tbody>
+              </table>
+            {% endif %}
           </div>
 
         </div>
@@ -106,22 +133,47 @@ limitations under the License. -->
       success: setLastRefreshedButton
     });
     </script>
+
+
+    <script type="text/javascript">
+    function setInstanceTableHeaders(json)  {
+      var tbl = document.getElementById("instancehead").rows[0];
+      console.log(json);
+      for(var i = 0; i < json.display_values.length;i++){
+        var val = json.display_values[i]
+        var row = document.createElement("TH");
+        row.innerHTML = val;
+        tbl.appendChild(row);
+      }
+
+      $.ajax({
+      url: "/ajax/instances",
+      type: "GET",
+      dataType: "json",
+      success: setInstanceTable
+      });
+    }
+
+    $.ajax({
+      url: "/ajax/display-values",
+      type: "GET",
+      dataType: "json",
+      success: setInstanceTableHeaders
+      });
+    </script>
+
     <script>
     $("#teaminstances").addClass("active");
 
-    $.ajax({
-    	url: "/ajax/instances",
-    	type: "GET",
-    	dataType: "json",
-    	success: function(json) {
+    function setInstanceTable(json)  {
     		var tbl = document.getElementById("instances");
     		//console.log(json);
     		//var instances = JSON.parse(json);
-    		
+
         var len = json.length;
         tbl.deleteRow(-1);
         tbl.deleteRow(-1);
-        if(len == 0 ) { 
+        if(len == 0 ) {
           // we have no data, but call succeeded
           row = tbl.insertRow(-1);
           c1 = row.insertCell();
@@ -168,14 +220,65 @@ limitations under the License. -->
           if(inst.time !== "--" && inst.state.Name === "running")
             cell[5].textContent = inst.time.substring(0,json[i].time.indexOf("."));
           else cell[5].textContent = "--";
-          
+
+          var headers = document.getElementById("instancehead").rows[0].cells;
+          console.log(document.getElementById("instancehead").rows[0].cells.length)
+          if(headers.length > 6){
+            for(var j = 6; j < headers.length; j++){
+              var col = headers[j].innerHTML;
+              cell[j] = row.insertCell();
+              cell[j].innerHTML = json[i][col];
+              console.log(json[i])
+            }
+          }
+        tbl.appendChild(row);
     		}
         $(document).ready(function(){
-          $('[data-toggle="tooltip"]').tooltip(); 
+          $('[data-toggle="tooltip"]').tooltip();
         });
     	}
 
+    $.ajax({
+      url: "/ajax/clusters",
+      type: "GET",
+      dataType: "json",
+      success: function(json) {
+        var tbl = document.getElementById("clusters");
+        //console.log(json);
+        //var instances = JSON.parse(json);
 
+        var len = json.length;
+        tbl.deleteRow(-1);
+        tbl.deleteRow(-1);
+        if(len == 0 ) {
+          // we have no data, but call succeeded
+          row = tbl.insertRow(-1);
+          c1 = row.insertCell();
+          c1.textContent = "You and your group do not have any instances.\
+           Please contact your administrator if you feel this is incorrect.";
+
+        }
+        for( var i = 0; i < len ; i++) {
+          //console.log(inst);
+          var row = tbl.insertRow(-1);
+          var inst = json[i];
+          var cell = [];
+          cell[0] = row.insertCell();
+          if(inst.id === "To Be Determined" || inst.id.includes("Error")){
+            cell[0].textContent=inst.id;
+          }else{
+            $(cell[0]).html("<a href=\"/dashboard/" + inst.id + "\">" + inst.id + "</a>");
+          }
+          cell[1] = row.insertCell();
+          cell[1].textContent=inst.purpose;
+          cell[2] = row.insertCell();
+          cell[2].textContent=inst.state.Name;
+          cell[3] = row.insertCell();
+          cell[3].textContent = inst.master_ip;
+          cell[4] = row.insertCell();
+          cell[4].textContent = inst.nodes_current+'/'+inst.nodes_total;
+        }
+      }
     });
 
     // get chart data

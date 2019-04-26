@@ -1,0 +1,106 @@
+<!-- Copyright 2017 MLiy Contributors
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+     http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License. -->
+{% extends 'mliyweb/base-template.html' %}
+{% block extra-css %}
+<link rel="stylesheet" href="/static/jquery-ui/jquery-ui.min.css">
+{% endblock %}
+{% block content-main %}
+        <div class="col-sm-9 col-sm-offset-3 col-md-10 col-md-offset-2 main">
+          <h1 class="page-header">Cluster</h1>
+
+          <h2 class="sub-header">Details</h2>
+          <div class="table-responsive">
+            <table class="table table-striped">
+              <tbody id="clusters">
+              <tr>
+                  <td>Cluster ID</td>
+                  <td>{{ object.cluster_id }}</td>
+                </tr>
+                <tr>
+                  <td>Owner Name</td>
+                  <td>{{ object.owner }} ({{ object.userid }})</td>
+                </tr>
+                <tr>
+                  <td>Purpose</td>
+                  <td>{{ object.purpose }}</td>
+                </tr>
+                <tr>
+                  <td># of Nodes</td>
+                  <td>{{ object.node_count }} provisioned out of {{ object.node_max }}</td>
+                </tr>
+                <tr>
+                  <td>State</td>
+                  <td>{{ object.state }}</td>
+                </tr>
+                <tr>
+                  <td>Host</td>
+                  <td>{{ object.master_ip }}</td>
+                </tr>
+                <tr>
+                  <td>Connection</td>
+                  <td>{{ object.custom_url }}</td>
+                </tr>
+                <tr>
+                  <td>Last Refreshed</td>
+                  <td>{{ object.updated_at }}</td>
+                </tr>
+              </tbody>
+            </table>
+            <hr/>
+          </div>
+
+          {% if object.state  == 'TERMINATED' or object.state  == 'COMPLETED' or object.state  == 'FAILED' or object.state  == 'An Error has occurred' %}
+          <input type="button" value="Remove this Record" onclick=termClstr("{{ object.cluster_id }}") />
+          {% else %}
+          <input type="button" value="Terminate this Cluster" onclick=termClstr("{{ object.cluster_id }}") />
+          {% endif %}
+        </div>
+{% endblock %}
+
+{% block javascript %}
+<script type="text/javascript">
+$('#menu > a').click(function(){
+    $(this).next().next().slideToggle();
+    return false;
+});
+</script>
+<script type="text/javascript">
+function termClstr(id) {
+  console.log("terminate cluster " + id);
+  {% if object.state  == 'TERMINATED' or object.state  == 'COMPLETED' or object.state  == 'FAILED' or object.state == 'An Error has occurred' %}
+  var confirm = true
+  {% else %}
+  var confirm = window.confirm("Really terminate cluster? This cannot be undone!");
+  {% endif %}
+  if (confirm == true) {
+    $.ajax({
+    url:"/ajax/cluster/" + id + "/terminate" ,
+    type: "GET",
+    dataType: 'json',
+    success: function(json) {
+      console.log(json);
+      $.ajax({
+        url: "/ajax/user-clusters",
+        type: "GET",
+        dataType: "json",
+        success: function(){
+          window.location.href = '{% url 'home' %}';
+        }
+      });
+    }
+  })
+  }
+}
+</script>
+{% endblock %}
