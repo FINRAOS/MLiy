@@ -22,6 +22,7 @@ Adminsitrators define one or more sets of software that are used by end users. M
 ## Features
 - Manage multiple software configurations
 - Manage available types of hardware
+- Manage both individual ec2 instances as well as EMR (Spark) clusters
 - Support multiple data sources
 - Allow users to start/stop processing power
 - Tag processing power for cost allocation
