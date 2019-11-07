@@ -14,7 +14,7 @@
 from setuptools import setup
 
 setup(name='mliymagic',
-      version='0.2',
+      version='0.3',
       description='Utilities for extending Jupyter notebooks on the MLiy machine learning platform.',
       url='https://github.com/FINRAOS/MLiy',
       license='Apache',

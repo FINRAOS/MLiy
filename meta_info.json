@@ -1,3 +1,7 @@
 {
-  "app_id" : "mliy"
+  "app_id" : "mliy",
+  "env" : "dev",
+  "region" : "us-east-1",
+  "s3_bucket_staging" : "",
+  "s3_prefix_staging" : ""
 }

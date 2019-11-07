@@ -14,41 +14,41 @@ limitations under the License. -->
 {% extends 'mliyweb/base-template.html' %}
 {% block content-main %}
 
-        <div class="col-sm-9 col-sm-offset-3 col-md-10 col-md-offset-2 main">
-          <h1 class="page-header">Launch New Instance</h1>
+<div class="col-sm-9 col-sm-offset-3 col-md-10 col-md-offset-2 main">
+  <h1 class="page-header">Launch New Instance</h1>
 
-          <h2 class="sub-header">Select New Instance Details</h2>
-          <div class="row">
-          <div class="col-md-8">
-            <div class="table-responsive">
-            <form id="pgform" method=post>
-            <div class="form-group">
-              <table class="table table-striped">
-                <tbody id="frmtable">
-                {% csrf_token %}
-                {{ form.as_table }}
-                </tbody>
-              </table>
-            <input class="btn btn-default" type="submit" value="Launch Instance" />
-            </div>
-            </form>
-            </div>
-          </div>
-          <div class="col-md-4">
-          <div class="panel panel-info">
-            <div class="panel-heading">
-              <h4 class="panel-title">Instance Info</h4>
-            </div>
-            <div id="instanceinfo" class="panel-body">
-              
-            </div>
-            <table id="iitable" class="table">
+  <div class="row">
+    <div class="col-md-8">
+      <h2 class="sub-header">Select New Instance Details</h2>
+      <div class="table-responsive">
+        <form id="pgform" method=post>
+          <div class="form-group">
+            <table class="table table-striped">
+              <tbody id="frmtable">
+              {% csrf_token %}
+              {{ form.as_table }}
+              </tbody>
             </table>
+            <input class="btn btn-default" type="submit" value="Launch Instance"/>
           </div>
-
-          </div>
-          </div>
+        </form>
+      </div>
+    </div>
+    <div class="col-md-4">
+      <div class="panel panel-info">
+        <div class="panel-heading">
+          <h4 class="panel-title">Instance Info</h4>
         </div>
+        <div id="instanceinfo" class="panel-body">
+
+        </div>
+        <table id="iitable" class="table">
+        </table>
+      </div>
+
+    </div>
+  </div>
+</div>
 {% endblock %}
 {% block javascript %}
 <script>
@@ -67,7 +67,7 @@ $("#id_instance_type").change(function() {
 });
 
 function populatePanel( insttype ) {
-  var url = "/ajax/instanceinfo/" + insttype;
+  var url = "/ajax/instance-info/" + insttype;
   $.get(url, function(json) {
     if( json === undefined ) {
       $("#instanceinfo").text("Instance type not found.<br>No data available."); 
@@ -81,7 +81,9 @@ function populatePanel( insttype ) {
       + "<td></tr><tr><td>Cores</td><td>"+
       json.vCPU
       +"<td></tr><tr><td>ECU</td><td>"+
-      json.ECU+"<td></tr><tr><td>EBS Optimized</td><td>"+json.ebs_optimized+"<td></tr>";
+      json.ECU+"<td></tr><tr><td>EBS Optimized</td><td>"+json.ebs_optimized+"<td></tr>"
+      +"<td></tr><tr><td>Price per Hour</td><td>"+
+      "$"+json.pricing['us-east-1'].linux.ondemand+"<td></tr>";
     $("#iitable").html(tbl);
 
   }, "json");

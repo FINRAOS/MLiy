@@ -7,4 +7,4 @@ class Command(BaseCommand):
 
         updatethread = InstanceUpdateThread()
 
-        updatethread.start()
+        # updatethread.start()

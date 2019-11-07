@@ -32,8 +32,16 @@ limitations under the License. -->
                   <td>{{ object.owner }} ({{ object.userid }})</td>
                 </tr>
                 <tr>
+                  <td>Group</td>
+                  <td>{{ UserGroup }}</td>
+                </tr>
+                <tr>
                   <td>Purpose</td>
                   <td>{{ object.purpose }}</td>
+                </tr>
+                <tr>
+                  <td>Instance Type</td>
+                  <td>{{ instance_type }}</td>
                 </tr>
                 <tr>
                   <td># of Nodes</td>
@@ -59,12 +67,14 @@ limitations under the License. -->
             </table>
             <hr/>
           </div>
+          <div id="actions">
+            {% if object.state  == 'TERMINATED' or object.state  == 'COMPLETED' or object.state  == 'FAILED' or object.state  == 'An Error has occurred' %}
+            <input type="button" value="Remove this Record" onclick=termClstr("{{ object.cluster_id }}") />
+            {% else %}
+            <input type="button" value="Terminate this Cluster" onclick=termClstr("{{ object.cluster_id }}") />
+            {% endif %}
+          </div>
 
-          {% if object.state  == 'TERMINATED' or object.state  == 'COMPLETED' or object.state  == 'FAILED' or object.state  == 'An Error has occurred' %}
-          <input type="button" value="Remove this Record" onclick=termClstr("{{ object.cluster_id }}") />
-          {% else %}
-          <input type="button" value="Terminate this Cluster" onclick=termClstr("{{ object.cluster_id }}") />
-          {% endif %}
         </div>
 {% endblock %}
 
@@ -84,6 +94,7 @@ function termClstr(id) {
   var confirm = window.confirm("Really terminate cluster? This cannot be undone!");
   {% endif %}
   if (confirm == true) {
+    $("#actions :input").prop('disabled', true).css('color',"#999")
     $.ajax({
     url:"/ajax/cluster/" + id + "/terminate" ,
     type: "GET",

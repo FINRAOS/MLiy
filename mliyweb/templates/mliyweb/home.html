@@ -37,13 +37,7 @@ limitations under the License. -->
               <h4>All instances</h4>
               <span class="text-muted">All instances managed by MLiy</span>
             </div>
-<!--             <div class="col-xs-6 col-sm-3 placeholder">
-              <img data-src="holder.js/200x200/auto/vine" class="img-responsive" alt="Generic placeholder thumbnail">
-              <h4>Label</h4>
-              <span class="text-muted">Ideas what to put here? Let me know!</span>
-            </div> -->
           </div>
-          <div id="last-refresh" class="mx-auto pull-right refresh-button"><span class="glyphicon glyphicon-refresh"></span> <span id="last-refresh-text" class="refresh-button-text">Refresh Status</span></div>
           {% if ec2access %}
             <h2 class="sub-header" id="instlist">All Instances</h2>
 
@@ -82,6 +76,7 @@ limitations under the License. -->
                 <thead>
                   <tr>
                     <th>ID</th>
+                    <th>Type</th>
                     <th>Purpose</th>
                     <th>State</th>
                     <th>IP</th>
@@ -94,6 +89,7 @@ limitations under the License. -->
                     <td>Please</td>
                     <td>Wait</td>
                     <td>(this might take 20 seconds or more) </td>
+                    <td></td>
                     <td></td>
                   </tr>
                   <tr>
@@ -109,31 +105,6 @@ limitations under the License. -->
 
 {% endblock %}
 {% block javascript %}
-    <script>
-    function setLastRefreshedButton(json){
-      var refreshStr = "Not Updated";
-      var date = new Date(Date.parse(json.last_update));
-      if(date != null){
-        var currentDate = new Date();
-        //if date is today, print time
-        if(date.getFullYear() === currentDate.getFullYear() && date.getMonth() === currentDate.getMonth() && date.getDate() === currentDate.getDate()){
-          refreshStr = "Correct as of Today at " + date.toLocaleTimeString();
-        }
-        //else print date
-        else{
-          refreshStr = "Correct as of " + date.toLocaleDateString();
-        }
-      }
-      $("#last-refresh-text")[0].innerText = refreshStr;
-    }
-    $.ajax({
-      url: "/ajax/update-last-refresh",
-      type: "GET",
-      dataType: "json",
-      success: setLastRefreshedButton
-    });
-    </script>
-
 
     <script type="text/javascript">
     function setInstanceTableHeaders(json)  {
@@ -196,24 +167,7 @@ limitations under the License. -->
           cell[2] = row.insertCell();
           cell[2].textContent=inst.state.Name;
           cell[3] = row.insertCell();
-          var oname = '';
-          for( var j = 0; j < inst.tags.length; j++) {
-            tag = inst.tags[j];
-            if( tag.Name == "User") {
-              oname = tag.Value;
-            }
-            {% if "manager" in user.groups %}
-            if( tag.Name == "userid") {
-              if( tag.Value == "{{ user.username.lower }}") {
-                $(row).addClass("success");
-              }
-              else {
-                $(row).addClass("warning");
-              }
-            }
-            {% endif %}
-          }
-          cell[3].textContent = oname;
+          cell[3].textContent = inst.owner;
           cell[4] = row.insertCell();
           cell[4].textContent = inst.sc;
           cell[5] = row.insertCell();
@@ -270,20 +224,22 @@ limitations under the License. -->
             $(cell[0]).html("<a href=\"/dashboard/" + inst.id + "\">" + inst.id + "</a>");
           }
           cell[1] = row.insertCell();
-          cell[1].textContent=inst.purpose;
+          cell[1].textContent=inst.type;
           cell[2] = row.insertCell();
-          cell[2].textContent=inst.state.Name;
+          cell[2].textContent=inst.purpose;
           cell[3] = row.insertCell();
-          cell[3].textContent = inst.master_ip;
+          cell[3].textContent=inst.state.Name;
           cell[4] = row.insertCell();
-          cell[4].textContent = inst.nodes_current+'/'+inst.nodes_total;
+          cell[4].textContent = inst.master_ip;
+          cell[5] = row.insertCell();
+          cell[5].textContent = inst.nodes_current+'/'+inst.nodes_total;
         }
       }
     });
 
     // get chart data
     $.ajax({
-      url: "/ajax/instancestates",
+      url: "/ajax/instance-states",
       type: "GET",
       dataType: "json",
       success: function(data) { 
@@ -293,7 +249,7 @@ limitations under the License. -->
     });
 
     $.ajax({
-      url: "/ajax/instancestatesglobal",
+      url: "/ajax/instance-states-global",
       type: "GET",
       dataType: "json",
       success: function(data) { 
@@ -303,7 +259,7 @@ limitations under the License. -->
     });    
 
     $.ajax({
-      url: "/ajax/instanceburn",
+      url: "/ajax/instance-burn",
       type: "GET",
       dataType: "json",
       success: function(data) { 

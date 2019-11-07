@@ -1,6 +1,6 @@
-boto3==1.4.0
-Django==1.11.20
-botocore==1.12.84
+boto3
+Django==1.11.23
+botocore
 django-ipware==1.1.6
 docutils==0.12
 futures==2.2.0
@@ -13,3 +13,4 @@ six==1.10.0
 requests==2.20.0
 ldap3==2.3
 pyyaml
+python-json-logger==0.1.11

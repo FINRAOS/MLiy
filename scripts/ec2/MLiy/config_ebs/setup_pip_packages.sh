@@ -1,6 +1,4 @@
-# Setup CRAN Repo
-# The script must be sourced by install_MLiy.sh
-
+#!/bin/bash
 # Copyright 2017 MLiy Contributors
 
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -15,18 +13,4 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-NUM_CPU=$(lscpu | grep '^CPU(s):' | awk '{print $2}')
-
-read -r -d "" R_PROFILE <<EOF
-local( {
-  repos <- getOption("repos")
-  repos["CRAN"] <- "${CRAN_REPO}"
-  options(repos=repos)
-# for no_proxy to work properly, use curl
-  options(download.file.method="libcurl")
-  options(Ncpus=${NUM_CPU})
-})
-Sys.umask(mode="0002")
-EOF
-
-echo "$R_PROFILE" > ~analyst/.Rprofile
+pip install awscli

@@ -515,6 +515,11 @@ In Users: Add the user to the Group that has the Cluster Software Config
 
 The user should now have access to launching clusters.
 
+### Setting the Cluster Auto Termination Default
+The provided Spark Cluster template has an option to automatically terminate if it is left idle for a specified amount of time. By default this is set to 0 Hours and 0 Minutes, which is equivalent to "auto termination disabled". This can be set through the Group Config by specifying "cluster_auto_termination_minutes=90" in the "Group Settings" field in the Admin Console > Group Configs > (specific Group  Config).
+<img src="./img/group_config_group_settings.png" width="800" border="10" />
+
+
 ### AWS Systems Manager Document
 MLiy instances and clusters include a iPython custom magic, MliyMagic, which can be used to deploy application jars or zips to Spark classpath in all already running EMR nodes. The library uses AWS Systems Manager Run Command to remotely and securely manage the configuration of your managed instances. The EC2 Instance profile (IAM Role) used to launch the MLiy instance and cluster must be able to invoke SSM Documents and read the specified library file in S3 bucket.
 

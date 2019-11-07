@@ -25,8 +25,14 @@ limitations under the License.
 * the Javascript console, but users tend to not look there.
 */
 function instanceCmd(id, verb) {
+  setTimeout(function(){
+      $("#error").append("<p>A problem has occurred. Please try refreshing the page.</p>").show()
+  }, 30000)
+  // Disable buttons once something is clicked
+  $("#actions :input").prop('disabled', true).css('color',"#999")
+  $("#message").append("<p>In progress: " + verb + "</p>").show()
   $.ajax({
-    url:"/ajax/instance/" + id + "/" + verb , 
+    url:"/ajax/instance/" + id + "/" + verb ,
     type: "GET",
     dataType: 'json',
     success: function(json) {
@@ -34,10 +40,10 @@ function instanceCmd(id, verb) {
       var wbox = document.getElementById("warning-box");
       $(wbox).prop("hidden", true); // hide it if it was visible before
       if (json.status != 'ok') {
-        
+
         console.log("action failed.")
         console.log("warning box contains '"+ wbox.textContent+"'");
-        
+
         /*
         //Populates the message with the actual error
         msg = "Error:<br>Action:" + json.action + "<br>";
@@ -47,6 +53,7 @@ function instanceCmd(id, verb) {
         */
         //Populates the message with something friendly and useless
         msg = "<span class=\"glyphicon glyphicon-warning-sign\"></span> We're sorry, but an error has occurred doing: <br>" + verb;
+        msg += "<br>Please wait a couple minutes before trying again. "
         $(wbox).html(msg);
         $(wbox).prop("hidden", false);
 
@@ -60,6 +67,7 @@ function instanceCmd(id, verb) {
       }
     }
   })
+
 }
 
 function startInst(id) {
@@ -78,15 +86,15 @@ function stopInst(id) {
   }
 }
 
-function rbInst(id) { 
+function rbInst(id) {
   console.log("reboot instance " + id);
-  var confirm = window.confirm("Really reboot instance?");
+  var confirm = window.confirm("Really reboot instance? The instance will still show as 'running' during its reboot. ");
   if (confirm == true) {
     instanceCmd(id, "restart");
   }
 }
 
-function termInst(id) { 
+function termInst(id) {
   console.log("terminate instance " + id);
   var confirm = window.confirm("This will terminate all instances and volumes attached to the stack. This cannot be undone.");
   if (confirm == true) {

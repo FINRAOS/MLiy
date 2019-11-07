@@ -16,4 +16,4 @@
 # limitations under the License.
 
 echo "[global]
-index-url = $PyPi_REPO" > /etc/pip.conf
+index-url = $PYPI_REPO" > /etc/pip.conf

@@ -1,0 +1,101 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: |-
+  AWS Cloudformation Template for MLiy.
+  Copyright 2017 MLiy Contributors
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+  http://www.apache.org/licenses/LICENSE-2.0
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+Parameters:
+  KeyName:
+    Description: The SSH key pair to use
+    Type: String
+  ImageId:
+    Description: The AMI (Amazon Machine Image) to use
+    Type: String
+  InstanceType:
+    Default: t2.medium
+    Description: The instance type to use
+    Type: String
+  IamInstanceProfile:
+    Description: The EC2 instance profile to use
+    Type: String
+  Subnets:
+    Description: The subnet(s) to use for the autoscaling group
+    Type: 'List<AWS::EC2::Subnet::Id>'
+  SecurityGroups:
+    Description: Security Groups to associate with Launch Configuration
+    Type: 'List<AWS::EC2::SecurityGroup::Id>'
+  UserData:
+    Description: The user data (base64 encoded) to use for bootstrapping
+    Type: String
+  EbsVolumeSize:
+    Description: EBS volume size
+    Type: String
+  EbsVolumeType:
+    Description: EBS volume type
+    Type: String
+  MarketType:
+    Description: ondemand or spot market
+    Type: String
+  BidPrice:
+    Description: spot market bid price
+    Type: Number
+    Default: 0
+Conditions:
+  UseSpot:
+    !Equals
+    - !Ref MarketType
+    - spot
+Resources:
+  LaunchConfig:
+    Type: AWS::AutoScaling::LaunchConfiguration
+    Properties:
+      KeyName: !Ref KeyName
+      ImageId: !Ref ImageId
+      InstanceType: !Ref InstanceType
+      IamInstanceProfile: !Ref IamInstanceProfile
+      SecurityGroups: !Ref SecurityGroups
+      BlockDeviceMappings:
+        - DeviceName: /dev/xvda
+          Ebs:
+            VolumeSize: !Ref EbsVolumeSize
+            VolumeType: !Ref EbsVolumeType
+      UserData: !Ref UserData
+      SpotPrice:
+        !If
+          - UseSpot
+          - !Ref BidPrice
+          - !Ref AWS::NoValue
+  AutoScalingGroup:
+    Type: AWS::AutoScaling::AutoScalingGroup
+    CreationPolicy:
+      ResourceSignal:
+        Count: 1
+        Timeout: PT240M
+    UpdatePolicy:
+      AutoScalingRollingUpdate:
+        MaxBatchSize: 2
+        MinInstancesInService: 1
+        MinSuccessfulInstancesPercent: 100
+        PauseTime: PT5M
+        SuspendProcesses:
+          - HealthCheck
+          - ReplaceUnhealthy
+          - AZRebalance
+          - AlarmNotification
+          - ScheduledActions
+        WaitOnResourceSignals: 'true'
+    Properties:
+      Cooldown: 90000
+      HealthCheckGracePeriod: 78000
+      HealthCheckType: EC2
+      LaunchConfigurationName: !Ref LaunchConfig
+      MinSize: 1
+      MaxSize: 2
+      VPCZoneIdentifier: !Ref Subnets

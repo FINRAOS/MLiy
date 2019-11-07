@@ -151,7 +151,7 @@ class Volume(models.Model):
 		return self.volume_id
 
 class Stack(models.Model):
-	stack_id = models.CharField(max_length=100, primary_key=True)
+	stack_id = models.CharField(max_length=255, primary_key=True)
 
 
 class Instance(models.Model):
@@ -256,8 +256,7 @@ class GroupConfig(models.Model):
 	group = models.ForeignKey(Group)
 	name = models.CharField(max_length=30)
 	emr_access = models.BooleanField(default=False)
-	AD_groupname = models.CharField(max_length=75,
-									blank=True,
+	AD_groupname = models.TextField(blank=True,
 									help_text='If set and a new user in this AD group hits the site the will be automatically provisioned into this group.')
 	exclInstances = models.ManyToManyField(InstanceType, blank=True,
 										   help_text='Instance types members of group cannot instantiate.')
@@ -273,6 +272,7 @@ class GroupConfig(models.Model):
 	sdlc = models.CharField(max_length=30)
 	key_name = models.CharField(max_length=50, help_text='SSH key for back end admin access.')
 	iam_instance_profile_name = models.CharField(max_length=50, blank=True, help_text='IAM instance profile to use.')
+	group_settings = models.TextField(blank=True,help_text='Group specific settings, separated by newlines. E.g. <br>cluster_auto_termination_minutes=30<br>generic_setting=default')
 
 	def __str__(self):
 		return "{} ({})".format(self.name, self.group)

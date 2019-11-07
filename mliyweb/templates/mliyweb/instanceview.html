@@ -31,6 +31,10 @@ limitations under the License. -->
                   <td>{{ object.owner }} ({{ object.userid }})</td>
                 </tr>
                 <tr>
+                  <td>Group</td>
+                  <td>{{ UserGroup }}</td>
+                </tr>
+                <tr>
                   <td>Configuration Name</td>
                   <td>{{ object.software_config.name }} ({{object.software_config.ami_id}})</td>
                 </tr>
@@ -72,7 +76,7 @@ limitations under the License. -->
                   <td>
                     <div class="table-responsive">
                       <table class="table table-striped">
-                        <tbody id="instances">
+                        <tbody id="volumes">
                 {% for vol in object.volume_set.iterator %}
                           <tr>
                             <td>Volume</td>
@@ -93,15 +97,30 @@ limitations under the License. -->
               </tbody>
             </table>
           </div>
-          {% if user.is_staff or not object.lock_controls %}
+          <div id="actions">
+          {% if user.is_staff or not object.lock_controls or "termin" not in object.state or "shutting" not in object.state %}
+
             {% if object.state == 'stopped' %}
               <input type="button" value="Start this Instance" onclick=startInst("{{ object.instance_id }}") />
               {% if object.userid|lower == user|lower or user.is_staff %}
                 <input type="button" value="Terminate this Instance" onclick=termInst("{{ object.instance_id }}") />
               {% endif %}
+
             {% elif object.state == 'running' %}
               <input type="button" value="Stop this Instance" onclick=stopInst("{{ object.instance_id }}") />
               <input type="button" value="Reboot this Instance" onclick=rbInst("{{ object.instance_id }}") />
+              {% if object.userid|lower == user|lower or user.is_staff %}
+                <input type="button" value="Terminate this Instance" onclick=termInst("{{ object.instance_id }}") />
+              {% endif %}
+
+            {% elif object.state == 'out of sync' and object.archived is False %}
+              {% if object.userid|lower == user|lower or user.is_staff %}
+                <input type="button" value="Archive this Instance" onclick=archInst("{{ object.instance_id }}") />
+              {% endif %}
+            {% endif %}
+
+          {% elif object.lock_controls %}
+            {% if object.state == 'running' or object.state == 'stopped'%}
               {% if object.userid|lower == user|lower or user.is_staff %}
                 <input type="button" value="Terminate this Instance" onclick=termInst("{{ object.instance_id }}") />
               {% endif %}
@@ -110,8 +129,9 @@ limitations under the License. -->
                 <input type="button" value="Archive this Instance" onclick=archInst("{{ object.instance_id }}") />
               {% endif %}
             {% endif %}
-          {% endif %}
 
+          {% endif %}
+          </div>
 
 <!-- Uncomment for some fun UI testing stuff -->
 <!--
@@ -119,7 +139,10 @@ limitations under the License. -->
           <input type="button" value="Fake Success" onclick=instanceCmd("{{ object.instance_id }}",'fakeok') />
 -->
           <!-- Don't comment the below out -->
+          <br>
           <div id='warning-box' class="alert alert-warning" role="alert" hidden="true">No warning!</div>
+          <div id='message' class="alert alert-info" role="alert" style='display: none'></div>
+          <div id='error' class="alert alert-warning" role="alert" style='display: none'></div>
         </div>
 
 {% endblock %}

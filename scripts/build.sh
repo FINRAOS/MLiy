@@ -16,7 +16,7 @@
 # limitations under the License.
 
 mkdir -p ../mliy-python
-if [ ! -d ../dist ] 
+if [ ! -d ../dist ]
 then
 	mkdir ../dist
 fi
@@ -24,4 +24,3 @@ fi
 tar --exclude='../dist' -zcvf ../dist/mliyweb.tar.gz ../*
 
 ls -l ../dist/*.gz
-

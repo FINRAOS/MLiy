@@ -48,6 +48,18 @@ def get_ssm_document(name):
             }
         })
 
+    if name in ['pip-install']:
+        meta['content']['description'] = 'Install Specified Python Package'
+        meta['content']['parameters'] = {
+            'PackageName': {'type': "String", 'description': 'Name of Python Package'}}
+        meta['content']['mainSteps'].append({
+            'action': 'aws:runShellScript',
+            'name': 'step1',
+            'inputs': {
+                'runCommand': ['pip install {{PackageName}}']
+            }
+        })
+
     return meta
 
 

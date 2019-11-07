@@ -20,48 +20,67 @@ import glob
 import logging
 import os
 
-#load function from 
-def loadPlugin(filename,function, context):
+from mliyweb.utils import log_enter_exit
+
+logger = logging.getLogger("plugin_logs")
+
+
+# load function from
+@log_enter_exit(logger, log_level=10)
+def loadPlugin(filename, function, context):
 	source = open(filename).read()
 	code = compile(source, filename, 'exec')
 	exec(code, context)
 	return context[function]
 
-#search all files in plugin folder
-def loadFunction(function,pluginDirectory = "plugin",context = {}):
-	logger = logging.getLogger("plugin_logs") 
-	fileArr = glob.glob(os.path.join(BASE_DIR+"/"+pluginDirectory, '*.py'))
 
-	for filename in glob.glob(os.path.join(BASE_DIR+"/"+pluginDirectory, '*.py')):
+# search all files in plugin folder
+@log_enter_exit(logger, log_level=10)
+def loadFunction(function_name, plugin_directory="plugin", context={}):
+	logger.debug("Entering: loadFunction()")
+
+	func = get_function_array(function_name, plugin_directory, context, return_on_find=True)
+	if func:
+		return func
+
+	raise NameError("function " + function_name + " does not exist in " + plugin_directory + " folder")
+
+
+# search all files in plugin folder
+@log_enter_exit(logger, log_level=10)
+def runAllFunctions(function_name, plugin_directory="plugin", context={}, *args):
+	logger.debug("Entering: runAllFunctions()")
+
+	functions = get_function_array(function_name, plugin_directory, context, return_on_find=False)
+
+	# ran through all the files, didn't find anything
+	if len(functions) == 0:
+		raise NameError("function " + function_name + " does not exist in " + plugin_directory + " folder")
+
+	results = []
+	for func in functions:
 		try:
-			func = loadPlugin(filename,function, context)
-			return func
-		except KeyError as e:
-			#function doesn't exist in file
-			logger.info("function "+function+" does not exist in file "+filename)
-
-	raise NameError("function "+function+" does not exist in " + pluginDirectory + " folder")
-
-#search all files in plugin folder
-def runAllFunctions(function,pluginDirectory = "plugin",context = {},*args):
-	logger = logging.getLogger("plugin_logs") 
-	funcArr = []
-	for filename in glob.glob(os.path.join(BASE_DIR+"/"+pluginDirectory, '*.py')):
-		try:
-			func = loadPlugin(filename,function, context)
-			funcArr.append(func)
-		except KeyError as e:
-			#function doesn't exist in file
-			logger.info("function "+function+" does not exist in file "+filename)
-	#ran through all the files, didn't find anything
-	if(len(funcArr) == 0):
-		raise NameError("function "+function+" does not exist in " + pluginDirectory + " folder")
-
-	resultsArr = []
-	for func in funcArr:
-		try:
-			resultsArr.append(func(*args))
+			results.append(func(*args))
 		except TypeError as err:
 			logger.exception(err)
 
-	return resultsArr
+	return results
+
+# If return_on_find is enabled, return the first function it finds
+@log_enter_exit(logger, log_level=10)
+def get_function_array(function_name, plugin_directory, context, return_on_find):
+
+	function_array = []
+	for filename in glob.glob(os.path.join(BASE_DIR + "/" + plugin_directory, '*.py')):
+		try:
+			func = loadPlugin(filename, function_name, context)
+			logger.debug("function " + function_name + " found in " + filename)
+			if return_on_find:
+				return func
+			function_array.append(func)
+
+		except KeyError:
+			# function doesn't exist in file
+			logger.debug("function " + function_name + " does not exist in file " + filename)
+
+	return function_array

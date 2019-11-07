@@ -13,7 +13,7 @@
 from .mliymagic import MliyMagic
 
 """MLIY iPython Magics"""
-__version__ = '1.0.0'
+__version__ = '0.3.0'
 
 
 def load_ipython_extension(ipython):

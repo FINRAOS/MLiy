@@ -204,47 +204,75 @@ MAX_INSTANCE_CACHE_AGE = 5
 # user is a member in
 MANAGER_GROUP_NAME = 'manager'
 
+# Log rotation settings
+MAX_BYTES = 1024 * 1024 * 5 # 5mb
+BACKUP_COUNT = 5
+
 LOGGING = {
 	'version': 1,
 	'disable_existing_loggers': False,
 	'formatters': {
 		'simple': {
-			'format': '%(asctime)s - %(levelname)s %(filename)s:%(lineno)d %(message)s'
+			'format': '%(asctime)s - %(levelname)s %(filename)s:%(lineno)d %(message)s',
+			'()': 'pythonjsonlogger.jsonlogger.JsonFormatter'
 		},
 	},
 	'handlers': {
+		'default': {
+			'level': DJANGO_LOG_LOWLEVEL,
+			'class': 'logging.handlers.RotatingFileHandler',
+			'maxBytes': MAX_BYTES,
+			'backupCount': BACKUP_COUNT,
+			'filename': LOG_LOCATION+'/mliy.log',
+			'formatter': 'simple'
+		},
 		'console': {
 			'level': DJANGO_LOG_LOWLEVEL,
-			'class': 'logging.FileHandler',
+			'class': 'logging.handlers.RotatingFileHandler',
+			'maxBytes': MAX_BYTES,
+			'backupCount': BACKUP_COUNT,
 			'filename': LOG_LOCATION+'/mliyweb.log',
 			'formatter': 'simple'
 		},
 		'plugin': {
 			'level': DJANGO_LOG_LOWLEVEL,
-			'class': 'logging.FileHandler',
+			'class': 'logging.handlers.RotatingFileHandler',
 			'filename': LOG_LOCATION+'/plugin.log',
+			'maxBytes': MAX_BYTES,
+			'backupCount': BACKUP_COUNT,
 			'formatter': 'simple'
 		},
 		'launchlog': {
 			'level': DJANGO_LOG_LOWLEVEL,
-			'class': 'logging.FileHandler',
+			'class': 'logging.handlers.RotatingFileHandler',
 			'filename': LOG_LOCATION+'/mliylaunch.log',
+			'maxBytes': MAX_BYTES,
+			'backupCount': BACKUP_COUNT,
 			'formatter': 'simple'
 		},
 		'authlog': {
 			'level': DJANGO_LOG_LOWLEVEL,
-			'class': 'logging.FileHandler',
+			'class': 'logging.handlers.RotatingFileHandler',
 			'filename': LOG_LOCATION+'/auth.log',
+			'maxBytes': MAX_BYTES,
+			'backupCount': BACKUP_COUNT,
 			'formatter': 'simple'
 		},
 		'botolog': {
 			'level': DJANGO_LOG_LOWLEVEL,
-			'class': 'logging.FileHandler',
+			'class': 'logging.handlers.RotatingFileHandler',
+			'maxBytes': MAX_BYTES,
+			'backupCount': BACKUP_COUNT,
 			'filename': LOG_LOCATION+'/boto.log',
 			'formatter': 'simple'
 		},
 	},
 	'loggers': {
+		'': {
+			'handlers': ['default'],
+			'level': DJANGO_LOG_LOWLEVEL,
+			'propagate': True,
+		},
 		'mliyweb.views': {
 			'handlers': ['console'],
 			'level': DJANGO_LOG_LOWLEVEL,

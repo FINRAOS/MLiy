@@ -1,7 +1,4 @@
 #!/bin/bash
-# Script to setup MLiy
-# The script expects environment variables as input
-
 # Copyright 2017 MLiy Contributors
 
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -16,6 +13,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+cd "$SCRIPT_DIR/jupyter"
+
 APP_NAME="jupyter"
 LOG_FILE="/var/log/$APP_NAME.log"
 
@@ -23,13 +22,13 @@ touch "$LOG_FILE"
 chown analyst:analyst "$LOG_FILE"
 
 KERNEL_WHITELIST=(python2 python3 toree-scala_scala)
-if [[ "$IS_GPU" == true ]]; then
-        KERNEL_WHITELIST+=(itorch)
+if [[ "$IS_GPU" == true || "$AWS_INSTANCE_TYPE_IS_GPU" == true ]] ; then
+    KERNEL_WHITELIST+=(itorch)
 fi
 KERNEL_WHITELIST_STRING=$(printf "'%s'," "${KERNEL_WHITELIST[@]}" | sed -e 's/,$/\n/g')
 
 read -r -d "" SYSCONFIG <<EOF
-export OPTIONS="notebook --no-browser --port 8080 --NotebookApp.base_url=/ipython/ --NotebookApp.token='' --NotebookApp.password='' \"--KernelSpecManager.whitelist=[$KERNEL_WHITELIST_STRING]\""
+export OPTIONS="notebook --no-browser --port 8080 --NotebookApp.base_url=/ipython/ --NotebookApp.token='' --NotebookApp.password='' --NotebookApp.allow_remote_access=True --NotebookApp.allow_origin='*' \"--KernelSpecManager.whitelist=[$KERNEL_WHITELIST_STRING]\""
 export JUPYTER_PATH="$MLIY_HOME/software/$APP_NAME/kernels/py3/share/$APP_NAME:$MLIY_HOME/software/$APP_NAME/kernels/py2/share/$APP_NAME"
 export LOG_FILE="$LOG_FILE"
 export LD_LIBRARY_PATH="$MLIY_HOME/software/openblas/OpenBLAS-0.3.5"
@@ -53,7 +52,7 @@ start() {
     echo "Starting \$PROG ..."
 
     source "\$MLIY_HOME/software/$APP_NAME/kernels/py3/bin/activate"
-    cd "\$MLIY_HOME/software/$APP_NAME/notebook_home"
+    cd "$ANALYST_HOME"
     daemon --user analyst "nohup \$PROG \$OPTIONS" >> "\$LOG_FILE" 2>&1 &
     deactivate
     return 0
@@ -94,4 +93,11 @@ chmod +x "/etc/init.d/$APP_NAME"
 
 chkconfig --add "$APP_NAME"
 
+pwd
+ls -lhtra
 
+if [[ -f custom.sh ]]; then
+    /bin/bash -x custom.sh
+fi
+
+cd "$SCRIPT_DIR"

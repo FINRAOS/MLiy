@@ -23,9 +23,11 @@ from mliyweb.settings import LDAP_ADMIN_GROUP_ATTRIBUTE
 from django.contrib.auth.models import User, Group
 import logging
 
+log = logging.getLogger("plugin_logs")
+
 
 def getAuthHeader():
-	return "HTTP_USERPRINCIPALNAME"
+	return "REMOTE_USER"
 
 
 def processAuthUserInfo(user,request):
@@ -54,7 +56,6 @@ def processAuthUserGroups(user,request):
 	Evaluate user against AD membership lists of the GroupConfig model, adding the user
 	to the right groups if a match is found.
 	"""
-	log = logging.getLogger(__name__)
 
 	if 'AUTHORIZE_MEMBEROF' not in request.META:
 		log.debug("User %s does not have AUTHORIZE_MEMBEROF set", str(user))
@@ -66,13 +67,11 @@ def processAuthUserGroups(user,request):
 	log.debug("User %s ad groups: %s", str(user), str(usrADgrps))
 	log.debug("GroupConfig ad groups: %s", str(grpADgrps))
 
-	usrgroups = grpADgrps & usrADgrps
-	log.debug("Adding user %s to groupconfigs %s", str(user), str(usrgroups))
-
-	for grp in usrgroups:
-		for gcfg in GroupConfig.objects.filter(AD_groupname=grp).values_list('group', flat=True):
-			user.groups.add(gcfg)
-			log.debug(gcfg)
+	for group in grpADgrps:
+		if group in usrADgrps:
+			for config in GroupConfig.objects.filter(AD_groupname=group).values_list('group', flat=True):
+				user.groups.add(config)
+				log.debug(config)
 
 
 def getGroupConfigADGroups():

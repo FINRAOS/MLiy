@@ -47,8 +47,8 @@ app_urls(){
     elif [[ "$APP" == "cmake" ]]; then
         APP_URLS+=("https://download.opensuse.org/repositories/home:/Milliams/CentOS_CentOS-6/x86_64/cmake-3.0.0-142.1.x86_64.rpm")
     elif [[ "$APP" == "cran" ]]; then
-        APP_URLS+=("$CRAN_URL/src/contrib/PACKAGES" \
-            $(curl --silent -L "$CRAN_URL/src/contrib/" | perl -lne 'print $1 if /a href="([^"]+\.tar\.gz)">/' | sed -e "s#^#$CRAN_URL/src/contrib/#g" | egrep "$CRAN_FILTER" | head -"${CRAN_LIMIT}" | sort))
+        APP_URLS+=("$MLIY_COMMON_CRAN_URL/src/contrib/PACKAGES" \
+            $(curl --silent -L "$MLIY_COMMON_CRAN_URL/src/contrib/" | perl -lne 'print $1 if /a href="([^"]+\.tar\.gz)">/' | sed -e "s#^#$MLIY_COMMON_CRAN_URL/src/contrib/#g" | egrep "$MLIY_IMAGE_CRAN_FILTER" | head -"${MLIY_IMAGE_CRAN_LIMIT}" | sort))
     elif [[ "$APP" == "cuda" ]]; then
         APP_URLS+=("https://developer.nvidia.com/compute/cuda/9.0/Prod/local_installers/cuda_9.0.176_384.81_linux-run" \
             "https://developer.nvidia.com/compute/cuda/9.0/Prod/patches/1/cuda_9.0.176.1_linux-run" \
@@ -90,7 +90,7 @@ app_urls(){
     elif [[ "$APP" == "pytorch" ]]; then
         APP_URLS+=("https://github.com/hughperkins/pytorch.git")
     elif [[ "$APP" == "r" ]]; then
-        APP_URLS+=("$CRAN_URL/src/base/R-3/R-3.5.1.tar.gz")
+        APP_URLS+=("$MLIY_COMMON_CRAN_URL/src/base/R-3/R-3.5.1.tar.gz")
     elif [[ "$APP" == "rshiny" ]]; then
         APP_URLS+=("https://download3.rstudio.org/centos6.3/x86_64/shiny-server-1.5.7.907-rh6-x86_64.rpm")
     elif [[ "$APP" == "rstudio" ]]; then
@@ -150,12 +150,9 @@ download() {
         if [[ "$S3_COUNT" -gt 0 && "$SKIP_IF_EXISTS" == true ]]; then
             log "$APP/$FILENAME already exists in s3, skipping ..."
             continue
-        fi
-
-        if [[ "$S3_COUNT" -eq 0 ]]; then
-            log "$APP/$FILENAME does not exist in s3, downloading ..."
+        elif [[ ( ("$S3_COUNT" -eq 0) || ("$S3_COUNT" -gt 0 && "$SKIP_IF_EXISTS" == false) ) ]]; then
+            log "downloading $APP/$FILENAME ..."
             if [[ "$(echo "$APP_URL" | egrep "\.git$" | wc -l)" -eq 1 ]]; then
-                #GIT_APP_NAME=$(echo "$APP_URL" | egrep -o '[^/]+/[^/.]+.git' | sed -e 's/\//_/g' -e 's/\.git//g' | tr [[:upper:]] [[:lower:]])
                 git clone "$APP_URL" "$APP" --recursive --quiet > /dev/null
             else
                 curl --silent -L "$APP_URL" -o "$FILENAME"
@@ -181,12 +178,13 @@ upload(){
     # Upload to S3
 
     local APP="$1"
+    local S3_STAGING_DIR="$2"
 
-    log "started uploading $S3_STAGING_URL/$S3_SDN_PREFIX/$APP"
+    log "started uploading $S3_STAGING_DIR/$MLIY_COMMON_SOFTWARE_DIR/$APP"
 
-    aws s3 sync . "$S3_STAGING_URL/$S3_SDN_PREFIX/$APP/" --sse > /dev/null
+    aws s3 sync . "$S3_STAGING_DIR/$MLIY_COMMON_SOFTWARE_DIR/$APP/" --sse > /dev/null
     if [[ "$CREATE_ARCHIVE" == true ]]; then
-        aws s3 cp ../"$TAR_FILE" "$S3_STAGING_URL/$S3_SDN_PREFIX/" --sse > /dev/null
+        aws s3 cp ../"$TAR_FILE" "$S3_STAGING_DIR/$MLIY_COMMON_SOFTWARE_DIR/" --sse > /dev/null
     fi
 
     cd ../
@@ -201,19 +199,21 @@ main(){
     FILE_COUNT=0
     TOTAL_START_TIME=$(date '+%s')
 
-    RC_FILE=$(find / -iname "rc-mliy.sh" 2> /dev/null | head -1)
-    if [[ ! -z "$RC_FILE" ]]; then
-        source "$RC_FILE"
-    else
-        echo "FATAL: unable to locate rc-mliy.sh"
-        exit 1
-    fi
+    init_config "$CONFIG_NAME" "$CONFIG_ENDPOINT"
+    init_http_proxy_vars
+
+    local S3_STAGING_DIR="s3://$MLIY_COMMON_S3_STAGING_BUCKET/$MLIY_COMMON_S3_STAGING_PREFIX"
 
     log "started initializing s3 cache"
-    S3_APP_CACHE=$(aws s3 ls "$S3_STAGING_URL/$S3_SDN_PREFIX/" --recursive | perl -lne 'print $1 if /[A-Z]{4}\/software\/(.*)/')
+    S3_APP_CACHE=$(aws s3 ls "$S3_STAGING_DIR/$MLIY_COMMON_SOFTWARE_DIR/" --recursive | \
+        perl -slne 'print $1 if /[A-Z]{4}\/$s\/(.*)/' -- -s="$MLIY_COMMON_SOFTWARE_DIR")
     log "finished initializing s3 cache ($(echo "$S3_APP_CACHE" | wc -l) items)"
 
-    APPS=$(echo "$APPS_CSV" | sed -e 's/ //g' -e 's/,/\n/g')
+    if [[ -z "$APPS" ]]; then
+        APPS="$MLIY_IMAGE_APPS"
+    fi
+
+    APPS=$(echo "$APPS" | sed -e 's/ //g' -e 's/,/\n/g')
 
     log "started preparing MLIY software. apps = $(echo "$APPS" | wc -l)"
 
@@ -230,7 +230,7 @@ main(){
             archive "$APP"
         fi
 
-        upload "$APP"
+        upload "$APP" "$S3_STAGING_DIR"
 
         END_TIME=$(date '+%s')
         DELTA=$(($END_TIME-$START_TIME))
@@ -244,5 +244,15 @@ main(){
 
     log "finished preparing MLIY software. delta = $TOTAL_DELTA seconds | apps = $APP_COUNT | files = $FILE_COUNT"
 }
+
+RC_FILE=$(find / -iname "rc-mliy.sh" 2> /dev/null | head -1)
+if [[ ! -z "$RC_FILE" ]]; then
+    source "$RC_FILE"
+else
+    echo "FATAL: unable to locate rc-mliy.sh"
+    exit 1
+fi
+
+parse_args "$@"
 
 main

@@ -21,7 +21,7 @@ cat > ~analyst/.Rprofile <<EOF
 # set CRAN repo
 local( {
   repos <- getOption("repos")
-  repos["CRAN"] <- "${CRAN_REPO}"
+  repos["CRAN"] <- "${CRAN_URL}"
   options(repos=repos)
 # for no_proxy to work properly, use curl
   options(download.file.method="libcurl")

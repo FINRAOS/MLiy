@@ -97,6 +97,26 @@ Parameters:
       health check
     Type: String
     Default: '5'
+  elbLoadBalancerPort:
+    Description: >-
+      The ELB listens to this port
+    Type: String
+    Default: '443'
+  elbInstancePort:
+    Description: >-
+      The ELB routes traffic to this port
+    Type: String
+    Default: '443'
+  elbProtocol:
+    Description: >-
+      The protocol the ELB listens to.
+    Type: String
+    Default: 'HTTPS'
+  elbInstanceProtocol:
+    Description: >-
+      The protocol the ELB uses to route traffic to the instance.
+    Type: String
+    Default: 'HTTPS'
   asGroupMinSize:
     Description: The min size to use for the autoscaling group
     Type: Number
@@ -261,7 +281,7 @@ Parameters:
     Default: ''
   DatabaseInitialize:
     Description: >-
-      Initialize specified database with tables and default data. 
+      Initialize specified database with tables and default data.
       This needs to be TRUE for initial deployment and FALSE for subsequent deployments.
     Type: String
     AllowedValues:
@@ -283,12 +303,12 @@ Parameters:
       - 'FALSE'
     Default: 'FALSE'
 Conditions:
-  CreateELB: !Not 
-    - !Equals 
+  CreateELB: !Not
+    - !Equals
       - !Ref elbName
       - NOT_SET
-  CreateRoute53: !Not 
-    - !Equals 
+  CreateRoute53: !Not
+    - !Equals
       - !Ref CreateRoute53ElbCnameRecord
       - 'FALSE'
 Resources:
@@ -300,7 +320,7 @@ Resources:
       SecurityGroups: !Ref SecurityGroups
       InstanceType: !Ref InstanceType
       IamInstanceProfile: !Ref IamInstanceProfile
-      UserData: !Base64 
+      UserData: !Base64
         'Fn::Join':
           - ''
           - - |
@@ -384,30 +404,30 @@ Resources:
             - export DNS_API_DATA=
             - !Ref DnsApiData
             - |+
-            
+
             - export DB_TYPE=
             - !Ref DatabaseType
-            - |+            
+            - |+
 
             - export DB_NAME=
             - !Ref DatabaseName
-            - |+ 
-            
+            - |+
+
             - export DB_HOST=
             - !Ref DatabaseHostname
-            - |+    
+            - |+
 
             - export DB_USER=
             - !Ref DatabaseUserName
-            - |+ 
+            - |+
 
             - export DB_PASSWD=
             - !Ref DatabaseUserPassword
-            - |+  
+            - |+
 
             - export DB_INIT=
             - !Ref DatabaseInitialize
-            - |+             
+            - |+
 
             - export INSTANCE_PRICING=
             - !Ref GetInstancePricing
@@ -442,8 +462,8 @@ Resources:
       SecurityGroups: !Ref elbSecurityGroups
       Scheme: internal
       Listeners:
-        - LoadBalancerPort: '443'
-          InstancePort: '443'
+        - LoadBalancerPort: !Ref elbLoadBalancerPort
+          InstancePort: !Ref elbInstancePort
           SSLCertificateId: !Ref elbSSLCertificateId
           Protocol: HTTPS
           InstanceProtocol: HTTPS
@@ -481,7 +501,7 @@ Resources:
       MaxSize: !Ref asGroupMaxSize
       VPCZoneIdentifier: !Ref asVpcSubnets
       LoadBalancerNames:
-        - !If 
+        - !If
           - CreateELB
           - !Ref ElasticLoadBalancer
           - !Ref 'AWS::NoValue'
@@ -492,16 +512,16 @@ Resources:
     Properties:
       HostedZoneName: !Ref DomainName
       RecordSets:
-        - Name: !Join 
+        - Name: !Join
             - ''
             - - !Ref AppDns
               - .
           Type: A
           AliasTarget:
-            HostedZoneId: !GetAtt 
+            HostedZoneId: !GetAtt
               - ElasticLoadBalancer
               - CanonicalHostedZoneNameID
-            DNSName: !GetAtt 
+            DNSName: !GetAtt
               - ElasticLoadBalancer
               - DNSName
 Outputs:

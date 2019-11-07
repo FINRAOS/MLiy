@@ -16,68 +16,73 @@ limitations under the License. -->
 
 <div class="col-sm-9 col-sm-offset-3 col-md-10 col-md-offset-2 main">
     <h1 class="page-header">Select Software Configuration</h1>
-    <h2 class="sub-header">Launch an Instance</h2>
+
     <div class="row">
         <div class="col-md-8">
-            <div class="table-responsive">
-                <table class="table table-striped">
-                    <tbody id="instances">
-                    <tr>
-                        <th>Configuration</th>
-                        <th></th>
-                    </tr>
-                    {% for obj in object_list %}
-                    {% if obj.emr_config is False %}
-                    <tr>
-                        <td> {{ obj.name }}</td>
-                        <td>
-                            <a class="btn btn-default" href="{% url 'selinstdetails' grpid=grpid swconfigid=obj.id %}"
-                               role="button" id="swcfg_{{ obj.id }}">Launch</a>
-                        </td>
-                    </tr>
-                    {% endif %}
-                    {% endfor %}
-                    </tbody>
-                </table>
-            </div>
+            <div class="row">
+                <div class="col-md">
+                    <h2 class="sub-header">Launch an Instance</h2>
 
-        </div>
-    </div>
-    {% if group_config.emr_access %}
-    <h2 class="sub-header">Launch a Cluster</h2>
-    <div class="row">
-        <div class="col-md-8">
-            <div class="table-responsive">
-                <table class="table table-striped">
-                    <tbody id="clusters">
-                    <tr>
-                        <th>Configuration</th>
-                        <th></th>
-                    </tr>
-                    {% for obj in object_list %}
-                    {% if obj.emr_config is True %}
-                    <tr>
-                        <td> {{ obj.name }}</td>
-                        <td>
-                            <a class="btn btn-default" href="{% url 'selectemrdetails' grpid=grpid swconfigid=obj.id %}"
-                               role="button" id="swcfg_{{ obj.id }}">Launch</a>
-                        </td>
-                    </tr>
-                    {% endif %}
-                    {% endfor %}
-                    </tbody>
-                </table>
-            </div>
+                    <div class="table-responsive">
+                        <table class="table table-striped">
+                            <tbody id="instances">
+                            <tr>
+                                <th>Configuration</th>
+                                <th></th>
+                            </tr>
+                            {% for obj in object_list %}
+                            {% if obj.emr_config is False %}
+                            <tr>
+                                <td> {{ obj.name }}</td>
+                                <td>
+                                    <a class="btn btn-default" href="{% url 'selinstdetails' grpid=grpid swconfigid=obj.id %}"
+                                       role="button" id="swcfg_{{ obj.id }}">Launch</a>
+                                </td>
+                            </tr>
+                            {% endif %}
+                            {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
 
-        </div>
-    </div>
-    {% endif %}
-    <div class="col-md-4">
-        <div class="panel panel-info">
-            <div class="panel-heading">
-                <h4 class="panel-title">Software Info</h4>
+                </div>
+                {% if group_config.emr_access %}
+
+                <div class="col-md">
+                    <h2 class="sub-header">Launch a Cluster</h2>
+
+                    <div class="table-responsive">
+                        <table class="table table-striped">
+                            <tbody id="clusters">
+                            <tr>
+                                <th>Configuration</th>
+                                <th></th>
+                            </tr>
+                            {% for obj in object_list %}
+                            {% if obj.emr_config is True %}
+                            <tr>
+                                <td> {{ obj.name }}</td>
+                                <td>
+                                    <a class="btn btn-default" href="{% url 'selectemrdetails' grpid=grpid swconfigid=obj.id %}"
+                                       role="button" id="swcfg_{{ obj.id }}">Launch</a>
+                                </td>
+                            </tr>
+                            {% endif %}
+                            {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            {% endif %}
             </div>
-            <div id="swd" class="panel-body">
+        </div>
+        <div class="col-md-4 float-right">
+            <div class="panel panel-info">
+                <div class="panel-heading">
+                    <h4 class="panel-title">Software Info</h4>
+                </div>
+                <div id="swd" class="panel-body">
+                </div>
             </div>
         </div>
     </div>
@@ -86,10 +91,17 @@ limitations under the License. -->
 {% block javascript %}
 <script>
 $("#launch").addClass("active");
+
 // generated functions, there should never be a lot
 {% for obj in object_list %}
-$("#swcfg_{{obj.id}}").hover(function() {$("#swd").html("{{obj.html_description|safe|linebreaks}}");},function(){$("#swd").html("&nbsp;");});
+$("#swcfg_{{obj.id}}").mouseenter(function() {
+        $("#swd").html("{{obj.html_description|safe|linebreaks}}");
+    });
 {% endfor %}
+
+function clearInfo(){
+        $("#swd").html("&nbsp;");
+}
 
 function populatePanel( data ) {
   console.log(data);
@@ -99,15 +111,6 @@ function populatePanel( data ) {
 function clearPanel() {
   $("#swd").html("&nbsp;");
 }
-
-
-
-
-
-
-
-
-
 
 </script>
 {% endblock %}
