@@ -12,15 +12,15 @@ This guide will talk about the arctitecture of the MLiy website, the plugin syst
 
 [Refreshing the Data](#refreshing-the-data)
 
+<hr>
+
 ## Architecture
 
 The website has a database that keeps track of the AWS State and is periodically updated to keep track of the AWS State. This is done to limit calls to AWS and avoid throttling on their side. The website launches instances and volumes through a cloudformation template with a user data script and parameters set by a software configuration. The website can then manage the instances to stop and start them. When necessary, the website can issue stack_delete and termination commands.
 
-### Update Thread
+### Database Updates
 
-The website keeps a separate record of the state of each instance it keeps track of, and over time this stops accurately reflecting the AWS state of the instances, and the update thread refreshes that state in the database. The thread grabs all EC2 instances with the LaunchedBy:MLiy tag.
-
-For instances that are not contained in the database a new record is created. For instances that are contained, they are updated with the correct state. After, all stale instances (Those not updated during the run of the thread) are deleted from the database.
+In order to keep track of Billing Data, database updates with the newest information from AWS is required. These updates are called whenever the user hits their dashboard page, limited by an overly simplistic implementation of a session limiter. 
 
 ### Launch Thread
 
@@ -91,8 +91,9 @@ URL Parameters:
 
 **num** is a percentile number 0-100 for the progress bar
 
-## Plugin Architecture
+<hr>
 
+## Plugin Architecture
 To support extending the MLiy website while preserving the capability to pull in new changes from the open source community, MLiy comes with a plugin system. A user can drop in python files into the appropriate folder. Only one function should exist per endpoint in the specified folder, as multiple functions that return different results would clash with each other. You can specify the path to the plugin folder in the settings.py file.
 
 ```
@@ -100,6 +101,8 @@ DNS_PLUGIN="plugin"
 
 AUTH_PLUGIN="ldapplugin"
 ```
+
+The plugin system works by searching through the plugin folder for certain functions. Once it finds the function, it will return it as a standalone function to be used by the application. See plugin.py its implementation.
 
 Plugins have their own file for storing global variables. This can be done in the ./plugin/plugin_settings.py file and referenced as an import.
 
@@ -160,20 +163,24 @@ def deleteDnsEntry(instance_name, ip):
 	return requests_result
 ```
 
+<hr>
+
 ## Logging
 
 Logging is done through Django. MLiy logs authentication, boto API calls, the web application itself, and the launches of the instances it spins up (but not what goes on in those instances). These are stored in auth.log, boto.log, mliyweb.log, and mliylaunch.log respectively. These can be viewed in the MLiy Web EC2 instance. They are located in /home/mliyapp/logs.
 
-By default, logs are configured to only store ERROR level messages. To configure this to INFO, DEBUG, etc., they can be set in the mliyweb/settings.py file. For the settings to take effect, the server must be restarted.
+It is recommended that the logs be placed in a more persisitent location eveuntually, as at the moment it is using the EC2 instance as a log location. MLiy does not provide a way to do so at the moment. However, Django can be configured to send logs to a certain location within the directories through the settings.py variable "LOG_LOCATION".
+
+By default, logs are configured to only store INFO level messages. To configure this to INFO, DEBUG, etc., they can be set in the mliyweb/settings.py file. For the settings to take effect, the server must be restarted.
 
 settings.py
 
 ```
-DJANGO_LOG_LOWLEVEL='ERROR'
+DJANGO_LOG_LOWLEVEL='INFO'
 
 LOG_LOCATION="/home/mliyapp/logs"
 
-LAUNCH_LOG_LEVEL='ERROR'
+LAUNCH_LOG_LEVEL='INFO'
 ```
 
 Restarting the Apache server
@@ -183,6 +190,8 @@ apachectl stop
 apachectl start
 ```
 
+<hr>
+
 ## Extending MLiy
 
 ### Code conventions
@@ -191,13 +200,17 @@ The code must comply with PEP-8 conventions which can be found below with a pref
 
 [https://www.python.org/dev/peps/pep-0008/]
 
+<hr>
+
 ## Simple Instance Pricing Module
+Prices of instances and EMR clusters are extremely hard to get from AWS. MLiy uses a static json file taken from http://www.ec2instances.info/instances.json in order to get around this.
 
-The code rips through the pricing json, on demand, whenever it is queried. Caching
-is handled by the host OS; it's unlikely that an active caching strategy will be worth the
-work due to the current workload the hosting system experiences.
+The code rips through the pricing json on demand, whenever it is queried. Caching
+is handled by the host OS; it's unlikely that an active caching strategy will be worth the work due to the current workload the hosting system experiences.
 
-This implementation precedes the AWS pricing service, and depends on a simpler data source, 
+This implementation precedes the AWS pricing service, and depends on a simpler data source.
+
+<hr>
 
 ## Refreshing the Data
 
@@ -205,7 +218,7 @@ MLiy uses data and format from www.ec2instances.info:
 
 	curl http://www.ec2instances.info/instances.json > instances.json
 
-Replace the instances.json file in [mliyweb/fixtures]. This should work unless the format has changed.
+Using SFTP or SSH, replace the instances.json file in [mliyweb/fixtures]. This should work unless the format has changed.
 
 
 [mliyweb/fixtures]:../mliyweb/fixtures

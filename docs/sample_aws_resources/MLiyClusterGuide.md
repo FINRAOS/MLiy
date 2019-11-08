@@ -37,7 +37,7 @@ The following services are available via links in your MLiy home page:
 
 You will be asked to logon with your LDAP/Active Directory credentials when you click on any of the services.
 
-![alt text](./img/mliy_emr_master.png "MLiy EMR Master")
+![alt text](../img/mliy_emr_master.png "MLiy EMR Master")
 
 ## SSH
 
@@ -51,33 +51,33 @@ ssh -i /path/to/pem/file hadoop@instance_ip_or_fqdn_of_master_node
 You will use your LDAP/Active Directory credentials to logon to services provided by your MLiy Cluster master node.
 
 ### JupyterHub
-In the JupyterHub web interface, you can create PySpark, PySpark3, Python 3 and Spark (Scala) notebooks . Go to top/right and click on New. You will see the option to select PySpark, PySpark3, Python 3 and Spark. You can browse files in your home directory in S3, and upload and download notebooks.
+In the JupyterHub web interface, you can create PySpark, PySpark3, Python 3, and Spark (Scala) notebooks. Go to top/right and click on New. You will see the option to select PySpark, PySpark3, and Python 3. You can browse files in your home directory in S3, and upload and download notebooks.
 
-![alt text](./img/jupyterhub.png "JypyterHub")
+![alt text](../img/jupyterhub.png "JypyterHub")
 
 ### Apache Livy
 Apache Livy is REST Service for Apache Spark. The Apache Livy user interface allows you to monitor active Livy sessions and logs.
 
-![alt text](./img/apache_livy.png "Apache Livy")
+![alt text](../img/apache_livy.png "Apache Livy")
 
 ### Apache Spark
 
 Spark History Server lists active Spark application and provide details about the associated Spark job.
 
-![alt text](./img/spark_history_server.png "Spark History Server")
-![alt text](./img/spark_jobs.png "Spark Jobs")
+![alt text](../img/spark_history_server.png "Spark History Server")
+![alt text](../img/spark_jobs.png "Spark Jobs")
 
 ### Apache Hadoop Yarn
 
 Yarn is resource manager for Hadoop. It helps monitor Spark applications scheduled in Yarn.
 
-![alt text](./img/apache_hadoop_yarn.png "Apache Hadoop Yarn")
+![alt text](../img/apache_hadoop_yarn.png "Apache Hadoop Yarn")
 
 ### Ganglia
 
 Ganglia provides a web-based user interface to view the metrics, including Hadoop and Spark metrics, for nodes in the cluster.
 
-![alt text](./img/ganglia.png "Ganglia")
+![alt text](../img/ganglia.png "Ganglia")
 
 ### SparkMagic
 
@@ -86,12 +86,41 @@ Sparkmagic (https://github.com/jupyter-incubator/sparkmagic) is a library of ker
 2. Via the PySpark (https://github.com/jupyter-incubator/sparkmagic/blob/master/examples/Pyspark%20Kernel.ipynb)  and Spark (https://github.com/jupyter-incubator/sparkmagic/blob/master/examples/Spark%20Kernel.ipynb) kernels
 
 ### Addlib Magic
-Once a cluster is up and running and you have logged on and created a notebook, you can use iPython custom magic, addlib_magic, to deploy your library as jar or zip file and import that library in your notebook cell and use it. Here is a sample code to load the magic and use it:
+Once a cluster is up and running and you have logged on and created a notebook, you can use iPython custom magic, mliymagic, to deploy your library as jar or zip file and import that library in your notebook cell and use it. Here is a sample code to load the magic and use it:
 
 ```
-%load_ext addlib_magic
+%load_ext mliymagic
 ```
 
 ```
 %addlib {Absolute S3 Path to Jar or Zip file}
 ```
+
+<hr>
+
+## Installing Python Packages 
+
+### On Just the Master Node
+
+Install Python package via Jupyter shell command or the Jupyter Terminal.
+
+    pip install [package_name] --user
+
+Example:
+
+    pip install pyudc --user
+
+### On the Master and Worker Nodes
+
+You can use the custom magic, pip_install, to install python packages in every node of the cluster.
+
+    %load_ext mliymagic
+
+    %%pip_install [Package Name]
+
+
+Example:
+
+    %pip_install pandas
+
+    %pip_install pyarrow
