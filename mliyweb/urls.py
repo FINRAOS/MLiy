@@ -29,11 +29,12 @@ See the License for the specific language governing permissions and
 limitations under the License.
 
 '''
+import mliyweb.api.v1 as api_v1
+
 from django.conf.urls import include, url
-from django.contrib import admin
-from .admin import admin_site
+
 from . import views
-from . import ajaxviews
+from .admin import admin_site
 
 urlpatterns = [
 	url(r'^$', views.UserDashboard.as_view(), name='home'),
@@ -51,22 +52,21 @@ urlpatterns = [
 	url(r'^profile$', views.UserProfile.as_view(), name='userprofile'),
 	url(r'^health$', views.HealthDashboard.as_view(), name='health'),
 	url(r'^launching/(?P<launchid>\w+)$', views.LaunchInterstitial.as_view(), name='launchingpage'),
-	url(r'^ajax/instancestatesglobal', ajaxviews.GlobalInstanceStatesJson.as_view()),
-	url(r'^ajax/instancestates', ajaxviews.InstanceStatesJson.as_view()),
-	url(r'^ajax/instanceburn', ajaxviews.HourlyBurnJson.as_view()),
-	url(r'^ajax/instanceinfo/(?P<instancetype>\w+\.\w+)$', ajaxviews.getInstanceInfo.as_view()),
-	url(r'^ajax/display-values', ajaxviews.ExtraEC2DisplayFields.as_view()),
-	url(r'^ajax/instances', ajaxviews.InstancesJson.as_view()),
-	url(r'^ajax/clusters', ajaxviews.ClustersJson.as_view()),
-	url(r'^ajax/update-last-refresh', ajaxviews.RefreshView.as_view()),
-	url(r'^ajax/user-payroll', ajaxviews.BillingJson.as_view()),
-	url(r'^ajax/cluster/(?P<clusterid>j-\w+)/terminate$', ajaxviews.changeClusterState.as_view()),
-	url(r'^ajax/instance/(?P<instanceid>i-\w+)/(?P<action>\w+)$', ajaxviews.changeInstanceState.as_view()),
+	url(r'^ajax/instance-states-global', api_v1.instance_states.GlobalInstanceStatesJson.as_view()),
+	url(r'^ajax/instance-states', api_v1.InstanceStatesJson.as_view()),
+	url(r'^ajax/instance-burn', api_v1.HourlyBurnJson.as_view()),
+	url(r'^ajax/instance-info/(?P<instancetype>\w+\.\w+)$', api_v1.GetInstanceInfo.as_view()),
+	url(r'^ajax/display-values', api_v1.ExtraEC2DisplayFields.as_view()),
+	url(r'^ajax/instances', api_v1.instances.UserGroupInstances.as_view()),
+	url(r'^ajax/clusters', api_v1.clusters.UserGroupClusters.as_view()),
+	url(r'^ajax/user-payroll', api_v1.BillingJson.as_view()),
+	url(r'^ajax/cluster/(?P<clusterid>j-\w+)/terminate$', api_v1.clusters.ChangeClusterState.as_view()),
+	url(r'^ajax/instance/(?P<instanceid>i-\w+)/(?P<action>\w+)$', api_v1.instances.ChangeInstanceState.as_view()),
 	url(r'^ajax/progress/(?P<instanceid>i-\w+)/(?P<progress>\w+)\((?P<num>\d+)\)$',
-		ajaxviews.changeInstanceProgress.as_view()),
-	url(r'^ajax/status/launch/(?P<launchid>\w+)$', ajaxviews.getLaunchStatus.as_view(), name='launchstatus'),
-	url(r'^ajax/user-instances', ajaxviews.UserInstancesJson.as_view()),
-	url(r'^ajax/user-clusters', ajaxviews.UserClustersJson.as_view()),
+		api_v1.ChangeInstanceProgress.as_view()),
+	url(r'^ajax/status/launch/(?P<launchid>\w+)$', api_v1.GetLaunchStatus.as_view(), name='launchstatus'),
+	url(r'^ajax/user-instances', api_v1.instances.UserInstances.as_view()),
+	url(r'^ajax/user-clusters', api_v1.UserClusters.as_view()),
 	url(r'^admin/doc/', include('django.contrib.admindocs.urls')),
 	url(r'^admin/', include(admin_site.urls)),
 ]

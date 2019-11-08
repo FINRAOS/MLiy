@@ -14,21 +14,6 @@
       "Default": "r3.2xlarge",
       "Description": "The instance type to use",
       "Type": "String",
-      "AllowedValues": [
-        "r3.large",
-        "r3.xlarge",
-        "r3.2xlarge",
-        "r3.4xlarge",
-        "r3.8xlarge",
-        "g2.2xlarge",
-        "g2.8xlarge",
-        "p2.xlarge",
-        "p2.8xlarge",
-        "p2.16xlarge",
-		"p3.2xlarge",
-        "p3.8xlarge",
-        "p3.16xlarge"
-      ],
       "ConstraintDescription": "must be a valid EC2 instance type."
     },
     "IamInstanceProfile": {
@@ -113,6 +98,18 @@
       "g2.8xlarge": {
         "EBSOptimized": "false"
       },
+      "g3s.xlarge": {
+        "EBSOptimized": "true"
+      },
+      "g3.4xlarge": {
+        "EBSOptimized": "true"
+      },
+      "g3.8xlarge": {
+        "EBSOptimized": "true"
+      },
+      "g3.16xlarge": {
+        "EBSOptimized": "true"
+      },
       "p2.xlarge": {
         "EBSOptimized": "true"
       },
@@ -171,18 +168,6 @@
           ]
         }
       ]
-    },
-    "UseSnapshot": {
-      "Fn::Not": [
-        {
-          "Fn::Equals": [
-            {
-              "Ref": "SnapshotId"
-            },
-            "NOT_SET"
-          ]
-        }
-      ]
     }
   },
   "Resources": {
@@ -206,17 +191,6 @@
             "setKmsKeyId",
             {
               "Ref": "KmsKeyId"
-            },
-            {
-              "Ref": "AWS::NoValue"
-            }
-          ]
-        },
-        "SnapshotId": {
-          "Fn::If": [
-            "UseSnapshot",
-            {
-              "Ref": "SnapshotId"
             },
             {
               "Ref": "AWS::NoValue"

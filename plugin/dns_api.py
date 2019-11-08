@@ -18,6 +18,7 @@ limitations under the License.
 from mliyweb.settings import DNS_DATA, DNS_API_URL, DNS_MLIY_URL
 from mliyweb.models import Key
 import requests
+import logging
 
 
 """
@@ -28,20 +29,25 @@ could also be used.
 """
 
 
+logger = logging.getLogger("plugin_logs")
+
 """
 This is the dns url that is displayed on the website and also 
 
 Changing it from the default implementation will enable the DNS module
 """
 def dnsDisplayName(instance_name, ip):
-	return str(instance_name+DNS_MLIY_URL).rstrip('/')
+	dns_name = str(instance_name + DNS_MLIY_URL).rstrip('/')
+	logger.debug("Setting DNS display name to " + dns_name)
+	return dns_name
 
 """
 This method is called when an instance is created to create a dns entry. 
 """
 def createDnsEntry(instance_name, ip):
 	dns_api_url = DNS_API_URL + instance_name + DNS_MLIY_URL
-
+	logger.info("Creating new DNS entry for IP: " + ip)
+	logger.info("Creating new DNS entry with name: " + instance_name + DNS_MLIY_URL)
 	# Get the key from our database
 
 	key = Key.objects.get(
@@ -60,6 +66,9 @@ This method is called when an instance is destroyed to remove a dns entry.
 """
 def deleteDnsEntry(instance_name, ip):
 	dns_api_url = DNS_API_URL + instance_name + DNS_MLIY_URL
+
+	logger.info("Deleting DNS entry for IP: " + ip)
+	logger.info("Deleting DNS entry with name: " + instance_name + DNS_MLIY_URL)
 
 	# Get the key from our database
 

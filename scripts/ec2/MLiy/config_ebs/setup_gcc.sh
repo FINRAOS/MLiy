@@ -13,5 +13,5 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-echo `echo 0 | alternatives --config gcc 2>/dev/null | grep 'gcc48' | awk '{print $1}' | tail -1` >  /tmp/no_of_gcc_versions.txt
+echo `echo 0 | alternatives --config gcc 2>/dev/null | grep 'gcc48' | sed 's/[*+]/ /g' | awk '{print $1}' | tail -1` >  /tmp/no_of_gcc_versions.txt
 cat /tmp/no_of_gcc_versions.txt | alternatives --config gcc

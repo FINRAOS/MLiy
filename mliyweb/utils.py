@@ -19,11 +19,15 @@ See the License for the specific language governing permissions and
 limitations under the License.
 
 '''
-from django.contrib.auth.models import User, Group
-from .settings import MANAGER_GROUP_NAME, AWS_REGION
-import boto3
+import functools
 import logging
+import uuid
+
+import boto3
 import requests
+from django.contrib.auth.models import User, Group
+
+from mliyweb.settings import MANAGER_GROUP_NAME, AWS_REGION
 
 
 # Utility Functions
@@ -115,3 +119,46 @@ def getSubnets(vpcID, subnetType):
 
 	return subnets
 
+def get_group_config_settings(group_config, setting_key, default):
+	logger = logging.getLogger("mliyweb.views")
+	logger.info("Retrieving group config settings.")
+	try:
+		if group_config.group_settings:
+			logger.debug("Retrieved group settings: " + group_config.group_settings)
+			settings = group_config.group_settings.split("\n")
+			for setting in settings:
+				if setting_key in setting:
+					value = setting.split('=')[1]
+					logger.debug("Returning setting: " + value)
+					return value
+	except Exception as e:
+		logger.exception(e)
+		
+	return default
+
+# Decorator
+def log_enter_exit(logger, log_level=20, log_return=False):
+
+	def decorator(func):
+
+		@functools.wraps(func)
+		def wrapper(*args, **kwargs):
+
+			log_dict = {
+				"method": func.__qualname__,
+				"execution_id": str(uuid.uuid4())[-12:]
+			}
+
+			logger.log(log_level, "entering",extra=log_dict)
+
+			return_value = func(*args, **kwargs)
+
+			if log_return:
+				log_dict["return"] = return_value
+
+			logger.log(log_level, "exiting", extra=log_dict)
+
+			return return_value
+		return wrapper
+
+	return decorator

@@ -48,7 +48,7 @@ The following services are available via links in your MLiy home page:
 
 You will be asked to logon with your LDAP/Active Directory credentials when you click on any of the services.
 
-![alt text](./img/udsp_platform.png "MLiy Platform")
+![alt text](../img/udsp_platform.png "MLiy Platform")
 
 ## SSH and SCP
 
@@ -67,9 +67,9 @@ scp your_file@instance_ip_or_fqdn:/path_to_file/your_file
 You will use your LDAP/Active Directory credentials to logon to services provided by your MLiy instance.
 
 ### Jupyter
-In the Jupyter web interface, you can create Python 2.7, Python 3.6 and iTorch notebooks (iTorch works in G2, P2 and P3 instance types only). Go to top/right and click on New. You will see option to select Python2, Python3 or iTorch. You can browse files in your home directory, upload and download files and open a terminal and install python packages.
+In the Jupyter web interface, you can create Python 2.7, Python 3.6, Scala, and iTorch notebooks (iTorch works in G2, P2 and P3 instance types only). Go to top/right and click on New. You will see option to select Python2, Python3, Scala, and iTorch. You can browse files in your home directory, upload and download files and open a terminal and install python packages.
 
-![alt text](./img/jupyter.png "Jypyter")
+![alt text](../img/jupyter.png "Jypyter")
 
 ### Dash
 Dash is a web application framework for Python. Here is a sample Dash application in Python test_Dash.py:
@@ -115,29 +115,29 @@ python test_Dash.py
 
 In the RStudio web interface, you can write, debug and run your code interactively or using scripts. You can also browse your home directory, download and upload files as well as install or update R packages.
 
-![alt text](./img/rstudio.png "RSudio")
+![alt text](../img/rstudio.png "RSudio")
 
 ### Rshiny
 
 Save all your Shiny applications (or directories) in the shiny folder of your home directory so that they are available automatically in the RShiny web interface. We include a sample shiny application hello in the shiny folder:
 
-![alt text](./img/rshiny.png "RShiny")
+![alt text](../img/rshiny.png "RShiny")
 
 Here is the output of the hello application:
 
-![alt text](./img/rshiny_output.png "RShiny Output")
+![alt text](../img/rshiny_output.png "RShiny Output")
 
 ### H2O
 
 You can develop notebooks in H2O using the H2O Flow Web Interface. You can also interact with H2O cluster using R and Python packages.
 
-![alt text](./img/h2O.png "H2O")
+![alt text](../img/h2O.png "H2O")
 
 ### Tensorboard
 
 Tensorboard is a visualizing tool for TensorFlow programs. It will only work in G2, P2 and P3 instance types.
 
-![alt text](./img/tensorboard.png "Tensorboard")
+![alt text](../img/tensorboard.png "Tensorboard")
 
 ### Python 2 and Python 3 Virtual Environments
 Both the Python virtual environments include tensorflow, Keras, Theano and pyTorch and support GPU instance types G2, P2 and P3.
@@ -340,15 +340,15 @@ Run the following magic to bring up the SparkMagic widget
 ```
 Specify Livy URL (https://{master_node_dns}/livy), select Basic_Access for "Auth type", enter your user name and password, scroll to the right and click on Add Endpoint.
 
-![alt text](./img/livy_add_endpoint.png "Add Livy Endpoint")
+![alt text](../img/livy_add_endpoint.png "Add Livy Endpoint")
 
 In the Create Session Tab, select the newly created Endpoint from the drop down, enter a session name, select a language, scroll to the right and type out desired spark configuration and click on Create Session.
 
-![alt text](./img/livy_create_session.png "Create Livy Session")
+![alt text](../img/livy_create_session.png "Create Livy Session")
 
 If successful, you should see an output similar to the following:
 
-![alt text](./img/livy_session_startup.png "Sample Livy Session Startup")
+![alt text](../img/livy_session_startup.png "Sample Livy Session Startup")
 
 Now you can use the %%spark magic to execute scala or python code in the remote Spark cluster. You can use the Manage Session and Manage Endpoint tabs to delete a Livy session and a Livy endpoint respectively.
 
@@ -367,7 +367,7 @@ See https://github.com/jupyter-incubator/sparkmagic/blob/master/examples/Magics%
 You can use the remote_addlib magic to deploy libraries (jars or zip) in specified S3 location to a specified MLiy cluster
 
 ```
-%load_ext addlib_magic
+%load_ext mliymagic
 ```
 
 Run the remote_addlib magic without arguments to show the syntax:

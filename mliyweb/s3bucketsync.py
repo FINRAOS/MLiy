@@ -38,15 +38,15 @@ def save_keys(keys,FILE_ROOT):
             save_to = open(key_path, "wb")
             key.get_file(save_to)
             save_to.close()
-            logger.debug("saved: %s" % key_path)
+            logger.info("saved: %s" % key_path)
         else:
             # etag holds the md5 for the key, wrapped in quotes
             s3_md5 = key.e_tag.strip('"')
             local_md5 = hashlib.md5(open(key_path, "rb").read()).hexdigest()
             if s3_md5 == local_md5:
-                logger.debug("already exists, file the same: %s" % key_path)
+                logger.info("already exists, file the same: %s" % key_path)
             else:
                 save_to = open(key_path, "wb")
                 key.get().download_fileobj(save_to)
                 save_to.close()
-                logger.debug("file changed, overwrote: %s" % key_path)
+                logger.info("file changed, overwrote: %s" % key_path)

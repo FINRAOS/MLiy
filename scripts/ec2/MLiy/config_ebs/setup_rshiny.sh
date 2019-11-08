@@ -1,6 +1,4 @@
-# Setup R Shiny Server
-# The script must be sourced by install_MLiy.sh
-
+#!/bin/bash
 # Copyright 2017 MLiy Contributors
 
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -20,7 +18,7 @@ cd ~analyst
 
 yum install -y -q --nogpgcheck "$MLIY_SOFTWARE/rshiny/shiny-server-1.5.7.907-rh6-x86_64.rpm"
 
-SHINY_APPS_DIR="$MLIY_HOME/rshiny/app"
+SHINY_APPS_DIR="$MLIY_SOFTWARE/rshiny/app"
 mkdir -m 775 -p "$SHINY_APPS_DIR"
 cp -R /opt/shiny-server/samples/sample-apps/hello "$SHINY_APPS_DIR/"
 chown -R analyst:analyst "$SHINY_APPS_DIR"

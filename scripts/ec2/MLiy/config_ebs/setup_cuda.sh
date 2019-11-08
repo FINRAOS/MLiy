@@ -1,6 +1,4 @@
-# Install CUDA
-# The script must be sourced by install_MLiy.sh
-
+#!/bin/bash
 # Copyright 2017 MLiy Contributors
 
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -40,7 +38,7 @@ EOF
 elif [[ "$CUDA_INSTALL_METHOD" == "binary" ]]; then
 
     # Update GCC to version 4.8
-    echo `echo 0 | alternatives --config gcc 2>/dev/null | grep 'gcc48' | awk '{print $1}' | tail -1` >  /tmp/no_of_gcc_versions.txt
+    echo `echo 0 | alternatives --config gcc 2>/dev/null | grep 'gcc48' | sed 's/[*+]/ /g' | awk '{print $1}' | tail -1` >  /tmp/no_of_gcc_versions.txt
     cat /tmp/no_of_gcc_versions.txt | alternatives --config gcc
 
     # NVIDIA CUDA Toolkit 9.0

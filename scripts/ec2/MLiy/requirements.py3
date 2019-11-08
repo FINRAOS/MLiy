@@ -47,7 +47,7 @@ itsdangerous
 JayDeBeApi
 jdcal
 Jinja2
-JPype1
+JPype1==0.6.3 # Jpype breaks on the newer version 7.0.0: https://github.com/baztian/jaydebeapi/issues/99
 jsonschema
 jupyter
 jupyter-client
@@ -73,7 +73,7 @@ notebook
 numpy
 odo
 openpyxl
-pandas==0.21
+pandas==0.23.4
 pathlib2
 patsy
 pbr

@@ -24,13 +24,11 @@ export WEKA_HOME="\$MLIY_SOFTWARE/weka/weka-3-8-2"
 export JUPYTER_PATH="\$MLIY_SOFTWARE/jupyter/kernels/py3/share/jupyter:\$MLIY_SOFTWARE/jupyter/kernels/py2/share/jupyter"
 EOF
 echo "$PROFILE_D" > /etc/profile.d/mliy.sh
-#source /etc/profile.d/mliy.sh
+chmod +x /etc/profile.d/mliy.sh
 
-PROXY_FILE=$(find "$MLIY_HOME/scripts/" -iname "proxy*.sh" | head -1)
+PROXY_FILE=$(find $(pwd)/../../../ "$MLIY_HOME/scripts/" -iname "proxy*.sh" | head -1)
 if [[ ! -z "$PROXY_FILE" ]]; then
     cp "$PROXY_FILE" "/etc/profile.d/proxy.sh"
-
+    chmod +x /etc/profile.d/proxy.sh
 fi
 
-chmod +x /etc/profile.d/mliy.sh
-chmod +x /etc/profile.d/proxy.sh

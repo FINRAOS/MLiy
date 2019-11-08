@@ -19,16 +19,19 @@ from mliyweb.models import Param
 from plugin.plugin_settings import LDAP_GROUP_PARAM
 
 
-def paramReplace(user_data,swconfig,lgroup):
+def paramReplace(user_data,sw_config,group_config):
 	logger = logging.getLogger("launch_logs")
 	dn_str = None
 
-	if(lgroup.AD_groupname is None or len(lgroup.AD_groupname) == 0 or lgroup.AD_groupname == ""):
-		logger.info("Group " + lgroup.name + " does not have an AD groupname")
+	if group_config.AD_groupname is None or len(group_config.AD_groupname) == 0 or group_config.AD_groupname == "":
+		logger.info("Group " + group_config.name + " does not have an AD groupname")
 		return user_data
 
 	try:
-		dn_str = Param.objects.get(token=LDAP_GROUP_PARAM).replacement
+		if group_config.AD_groupname:
+			dn_str = group_config.AD_groupname
+		else:
+			dn_str = Param.objects.get(token=LDAP_GROUP_PARAM).replacement
 	except Param.DoesNotExist as e:
 		logger.error("When attempting to set group ldap parameter in user data, did not find a base DN string under " + LDAP_GROUP_PARAM)
 		logger.info(LDAP_GROUP_PARAM + " is set in plugin/plugin_settings.py")
@@ -38,13 +41,7 @@ def paramReplace(user_data,swconfig,lgroup):
 	if "CN" not in dn_str:
 		logger.error("When attempting to set group ldap parameter in user data, base DN string did not contain CN= in " + dn_str)
 		return user_data
-	
-	default_cn = stripCN(dn_str)
-	
-	dn_str = dn_str.replace(default_cn,lgroup.AD_groupname) 
 
-
-	
 	user_data = user_data.replace("{{{" + LDAP_GROUP_PARAM + "}}}", dn_str)
 	
 	return user_data

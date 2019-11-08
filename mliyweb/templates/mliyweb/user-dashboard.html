@@ -17,9 +17,6 @@ limitations under the License. -->
 {% block content-main %}
 <div class="col-sm-9 col-sm-offset-3 col-md-10 col-md-offset-2 main">
     <h1 class="page-header">My View</h1>
-
-    <div id="last-refresh" class="mx-auto pull-right refresh-button"><span class="glyphicon glyphicon-refresh"></span>
-        <span id="last-refresh-text" class="refresh-button-text">Refresh Status</span></div>
     <div id="tableses">
         <div id="hiding-box">
             <div id="circle-rotate"></div>
@@ -55,6 +52,7 @@ limitations under the License. -->
                 </tbody>
             </table>
         </div>
+        <p class="alert alert-info" id="no-instances" style="display: none"></p>
         {% endif %}
         {% if emraccess %}
           <h2 class="sub-header" id="clustlist">My Clusters</h2>
@@ -64,7 +62,10 @@ limitations under the License. -->
                 <th>Web Link</th>
                 <th>Purpose</th>
                 <th>State</th>
+                <th>Hourly Cost</th>
                 <th>Software Config</th>
+                <th>Uptime</th>
+                <th>Type</th>
                 <th>Nodes</th>
                 <th>Manage Link</th>
               </tr>
@@ -77,6 +78,8 @@ limitations under the License. -->
                 <td>(this might take 20 seconds or more) </td>
                 <td></td>
                 <td></td>
+                <td></td>
+                <td></td>
               </tr>
               <tr>
               <td colspan=4><img src="/static/ajax-loader.gif"></td>
@@ -84,39 +87,18 @@ limitations under the License. -->
 
             </tbody>
           </table>
+          <p class="alert alert-info" id="no-clusters" style="display: none"></p>
         {% endif %}
     </div>
+    <hr>
     <div id='warning-box' class="alert alert-warning" role="alert" hidden="hidden">No warning!</div>
-    <p class="alert alert-info">Use Instance Page to terminate an instance.</p>
+    <p class="alert alert-info" role="alert" >Use the Manage Link to terminate the resource.</p>
 </div>
 
 {% endblock %}
 {% block javascript %}
 <script src="/static/js/mliy-instancecontrols.js"></script>
 <script>
-    function setLastRefreshedButton(json){
-      var refreshStr = "Not Updated";
-      var date = new Date(Date.parse(json.last_update));
-      if(date != null){
-        var currentDate = new Date();
-        //if date is today, print time
-        if(date.getFullYear() === currentDate.getFullYear() && date.getMonth() === currentDate.getMonth() && date.getDate() === currentDate.getDate()){
-          refreshStr = "Correct as of Today at " + date.toLocaleTimeString();
-        }
-        //else print date
-        else{
-          refreshStr = "Correct as of " + date.toLocaleDateString();
-        }
-      }
-      $("#last-refresh-text")[0].innerText = refreshStr;
-    }
-    $.ajax({
-      url: "/ajax/update-last-refresh",
-      type: "GET",
-      dataType: "json",
-      success: setLastRefreshedButton
-    });
-
     function setInstanceTableHeaders(json)  {
       var tbl = document.getElementById("instancehead").rows[0];
       console.log(json);
@@ -156,6 +138,9 @@ limitations under the License. -->
       //var instances = JSON.parse(json);
 
       var len = json.length;
+      if (len == 0) {
+            $("#no-instances").prepend("You do not have any instances.<br>").show();
+      }
       while( tbl.rows.length > 0) {
         tbl.deleteRow(-1);
       }
@@ -240,11 +225,7 @@ limitations under the License. -->
         tbl.deleteRow(-1);
         tbl.deleteRow(-1);
         if (len == 0) {
-            row = tbl.insertRow(-1);
-            c1 = row.insertCell();
-            c1.textContent = "You and your group do not have any clusters.\
-               Please contact your administrator if you feel this is incorrect.";
-
+            $("#no-clusters").append("You do not have any clusters.").show();
         }
         for (var i = 0; i < len; i++) {
             var row = tbl.insertRow(-1);
@@ -274,26 +255,23 @@ limitations under the License. -->
             cell[2] = row.insertCell();
             cell[2].textContent = cluster.state.Name;
             cell[3] = row.insertCell();
-            cell[3].textContent = cluster.software_config;
+            cell[3].textContent = cluster.hourly_cost;
             cell[4] = row.insertCell();
-            cell[4].textContent = cluster.nodes_current + '/' + cluster.nodes_total;
+            cell[4].textContent = cluster.software_config;
             cell[5] = row.insertCell();
+            cell[5].textContent = cluster.uptime;
+            cell[6] = row.insertCell();
+            cell[6].textContent = cluster.type;
+            cell[7] = row.insertCell();
+            cell[7].textContent = cluster.nodes_current + '/' + cluster.nodes_total;
+            cell[8] = row.insertCell();
             if (!cluster.id.includes('j-')) {
-                cell[5].textContent = cluster.id;
+                cell[8].textContent = cluster.id;
             } else {
-                cell[5].innerHTML = '<form method="get" action="/dashboard/' + cluster.id + '"><button class="btn" type="submit">' + cluster.id + '</button></form>'
+                cell[8].innerHTML = '<form method="get" action="/dashboard/' + cluster.id + '"><button class="btn" type="submit">' + cluster.id + '</button></form>'
             }
         }
     }
-
-
-
-    $.ajax({
-    	url: "/ajax/user-instances",
-    	type: "GET",
-    	dataType: "json",
-    	success: setInstanceTable
-      });
 
     $.ajax({
       url: "/ajax/user-clusters",

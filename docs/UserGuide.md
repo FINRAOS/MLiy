@@ -61,12 +61,12 @@ Select the options for your cluster.
 
 |Field|Description|
 |---|---|
-|Instance Type  | Type of instances you want for your cluster. |
-|Purpose        | Purpose of the cluster. This will also become a tag in the Cloudformation stack. |
-|Core Nodes     | Number of core nodes to provision for the EMR cluster. |
-|Task Nodes     | Number of task nodes to provision for the EMR cluster. |
-|On Demand      | Checking this will make the EMR cluster ON DEMAND. Leaving it unchecked will make it a SPOT cluster. |
-|Bid Price      | If On Demand is unchecked, select the bid price for the SPOT instance.|
+|Instance Type    | Type of instances you want for your cluster. |
+|Purpose          | Purpose of the cluster. This will also become a tag in the Cloudformation stack. |
+|Core Nodes       | Number of core nodes to provision for the EMR cluster. |
+|Market Type      | Choose between Spot and On-Demand pricing. Choosing On-Demand will disable the Spot Bid Price field. |
+|Bid Price        | If On Demand is unchecked, select the bid price for the SPOT instance.|
+|Auto Termination | The Hours : Minutes that the cluster needs to be idle before terminating itself. |
 
 Click on the "Launch Cluster" button.
 

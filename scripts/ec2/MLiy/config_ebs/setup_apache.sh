@@ -1,6 +1,4 @@
-# Setup Apache Configuration
-# The script must be sourced by install_MLiy.sh
-
+#!/bin/bash
 # Copyright 2017 MLiy Contributors
 
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -110,17 +108,20 @@ LoadModule proxy_wstunnel_module modules/mod_proxy_wstunnel.so
         AuthBasicProvider PAM
         AuthPAMService httpd
         Require valid-user
+        ProxyPreserveHost On
         ProxyPass http://localhost:8080/ipython/ timeout=86400 keepalive=On
         ProxyPassReverse http://localhost:8080/ipython/
         RequestHeader set Origin "http://localhost:8080"
     </Location>
 
     <Location /ipython/api/kernels/>
+        ProxyPreserveHost On
         ProxyPass ws://localhost:8080/ipython/api/kernels/ timeout=86400 keepalive=On
         ProxyPassReverse ws://localhost:8080/ipython/api/kernels/
     </Location>
 
     <Location /ipython/terminals/websocket/>
+        ProxyPreserveHost On
         ProxyPass ws://localhost:8080/ipython/terminals/websocket/ timeout=86400 keepalive=On
         ProxyPassReverse ws://localhost:8080/ipython/terminals/websocket/
     </Location>

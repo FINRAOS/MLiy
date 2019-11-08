@@ -18,7 +18,7 @@ TEMPLATE="AWS_APP_MLiy_CloudFormation.yaml"
 
 # ***** Before invoking this script *****
 # 1. In param.json, fill in the corresponding values for your environment
-# 2. Uncomment and Set the following variables 
+# 2. Uncomment and Set the following variables
 #AWS_DEFAULT_REGION="Amazon Region"
 #STACK_NAME="Unique Cloudformation Stack Name to create"
 #TAGS="Key Value pairs to tag AWS resource with"

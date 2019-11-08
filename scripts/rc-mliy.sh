@@ -16,96 +16,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# --- debug, log more info ---
-if [[ -z "$DEBUG" ]]; then export DEBUG=false; fi
-
-# --- image/EBS volume settings
-if [[ -z "$IMAGE_MODE" ]]; then export IMAGE_MODE="ebs_volume"; fi
-if [[ -z "$EBS_VOLUME_SIZE" ]]; then export EBS_VOLUME_SIZE=80; fi
-if [[ -z "$EBS_VOLUME_TYPE" ]]; then export EBS_VOLUME_TYPE="gp2"; fi
-
-# --- proxy
-if [[ -z "$http_proxy" ]]; then export http_proxy="http://proxy:3128"; fi
-if [[ -z "$https_proxy" ]]; then export https_proxy="http://proxy:3128"; fi
-if [[ -z "$HTTP_PROXY" ]]; then export HTTP_PROXY="http://proxy:3128"; fi
-if [[ -z "$HTTPS_PROXY" ]]; then export HTTPS_PROXY="http://proxy:3128"; fi
-if [[ -z "$NO_PROXY" ]]; then export NO_PROXY="127.0.0.1,localhost,169.254.169.254,169.254.170.2"; fi
-
-# --- Initialize list of applications and default actions ---
-if [[ -z "$APPS_CSV" ]]; then
-    export APPS_CSV="aws,cmake,cran,cuda,h2o,hdf5,itorch,jdbc,ldap,nlopt,odbc,openblas,openpgm,pip,python,pytorch,r,rshiny,rstudio,sbt,scala,spark,sparkmagic,theano,torch,weka,zeromq"
-fi
-if [[ -z "$COMPILE_APPS" ]]; then
-    export COMPILE_APPS="ldap,odbc,openblas,r,theano"
-fi
-if [[ -z "$INSTALL_APPS" ]]; then
-    export INSTALL_APPS="h2o,spark,jupyter,nvidia,cuda,openpgm,zeromq,torch,itorch,pytorch,theano,cran,jdbc,ldap,weka"
-fi
-if [[ -z "$SOFTWARE_CONFIG" ]]; then
-    export SOFTWARE_CONFIG=$(echo "$COMPILE_APPS $INSTALL_APPS" | \
-            sed -e 's/,/ /g' -e 's/  //g' -e 's/ /\n/g' | \
-            sort -rn | uniq | sort | \
-            tr "\n" "," | sed -e 's/,$//g')
-fi
-
-# mliy version
-if [[ -f /tmp/mliy/build_info ]]; then
-    export MAJOR_VERSION=$(date '+%Y%m') # yearmonth
-    export MINOR_VERSION=$(awk -F'=' '/GIT_BRANCH=/ {print $2}' /tmp/mliy/build_info | tr -d "\n" | sed -e 's/\(\(feature\|release\)\/\|-\|sprint\)//g') # release/sprint
-    export RC_VERSION=$(awk -F'=' '/BUILD_ID=/ {print $2}' /tmp/mliy/build_info) # build id
-    export MLIY_VERSION="$MAJOR_VERSION-$MINOR_VERSION-$RC_VERSION"
-fi
-
-# --- Installation directory
-if [[ -z "$INSTALL_DIR" ]]; then export INSTALL_DIR="/opt/mliy"; fi
-if [[ -z "$TMP_DIR" ]]; then export TMP_DIR="/tmp/mliy"; fi
-if [[ -z "$MOUNT_DIR" ]]; then export MOUNT_DIR="/mnt/mliy"; fi
-
-# --- Yum
-if [[ -z "$YUM_CORE_PACKAGES" ]]; then
-    export YUM_CORE_PACKAGES="atlas-sse3,atlas-sse3-devel,aws-cfn-bootstrap,blas,bzip2-devel.x86_64,cairo,freetype-devel,gcc-c++,gcc-gfortran,gd,gdbm-devel,gd-devel,git,graphviz,httpd24,httpd24-devel,java-1.8.0-openjdk,java-1.8.0-openjdk-devel,java-1.8.0-openjdk-headless,jpeg-turbo,jq,lapack64,lapack64-devel,lapack-devel,latex2html,libcurl-devel,libgfortran,libgomp,libjpeg-turbo-devel,libpcap-devel,libpng-devel,libxml2,libxml2-devel,libxml2-python27,libXt-devel,mod24_ssl,mysql-devel,MySQL-python27,openjpeg,openjpeg-devel,openldap-clients,openldap-devel,openmpi,openmpi-devel,pam-devel,pango,pango-devel,pcre-devel.x86_64,poppler-glib,poppler-glib-devel,postgresql-devel,python27-psycopg2,python27-PyGreSQL,python36-devel.x86_64,python36-libs.x86_64,python36-setuptools,python36.x86_64,readline,readline-devel,screen,sqlite-devel,tcl,texi2html,texinfo,texlive-collection-latexrecommended,texlive-pdftex,texlive-xcolor,turbojpeg,turbojpeg-devel,valgrind-devel"
-fi
-
-# --- R/CRAN
-# 13k/6GB of R packages. use LIMIT and FILTER
-# to manage which packages are downloaded ---
-if [[ -z "$CRAN_URL" ]]; then export CRAN_URL="https://cran.r-project.org"; fi
-if [[ -z "$CRAN_LIMIT" ]]; then export CRAN_LIMIT=100000; fi
-if [[ -z "$CRAN_FILTER" ]]; then export CRAN_FILTER=".*"; fi
-if [[ -z "$CRAN_CORE_SKIP_INSTALL" ]]; then export CRAN_CORE_SKIP_INSTALL=false; fi
-if [[ -z "$CRAN_CORE_PACKAGES" ]]; then
-    export CRAN_CORE_PACKAGES="A3,base64enc,BH,caret,DBI,digest,httr,jsonlite,RCurl,rJava,RJDBC,Rmpi,RODBC,shiny,statmod,xml2,xts,zoo";
-fi
-if [[ -z "$CRAN_EXTRA_SKIP_INSTALL" ]]; then export CRAN_EXTRA_SKIP_INSTALL=true; fi
-if [[ -z "$CRAN_EXTRA_PACKAGES" ]]; then
-    export CRAN_EXTRA_PACKAGES="abind,acepack,actuar,ada,ade4,adehabitatLT,adehabitatMA,ADGofTest,AER,AGD,akima,alr3,alr4,amap,Amelia,animation,ape,argparse,arm,ascii,assertthat,AUC,backports,barcode,base64,bayesplot,BayesX,BB,bbmle,bdsmatrix,betareg,bibtex,biclust,biglm,bigmemory,bigmemory.sri,bindr,bindrcpp,binman,bit,bit64,bitops,bizdays,blob,BradleyTerry2,brew,brglm,bridgesampling,Brobdingnag,broom,BSDA,bst,C50,ca,Cairo,CALIBERrfimpute,car,CARBayesdata,catdata,caTools,cba,cellranger,checkmate,chemometrics,chron,circlize,CircStats,cmprsk,coda,coin,colorspace,colourpicker,combinat,commonmark,CompQuadForm,config,corpcor,corrplot,covr,coxme,crayon,crosstalk,cshapes,cubature,Cubist,curl,cvTools,d3heatmap,d3Network,DAAG,data.table,date,DBItest,dbplyr,debugme,degreenet,deldir,dendextend,DendSer,DEoptimR,desc,descr,deSolve,devtools,dfoptim,dichromat,diptest,directlabels,disposables,DistributionUtils,diveMove,doBy,doMPI,doParallel,DoseFinding,doSNOW,dotCall64,downloader,dplyr,DT,dtplyr,dygraphs,dynamicTreeCut,dynlm,e1071,earth,Ecdat,Ecfun,effects,ellipse,emdbook,entropy,Epi,EpiModel,ergm,ergm.count,ergm.userterms,estimability,etm,evaluate,evd,expint,expm,extrafont,extrafontdb,fastICA,fastmatch,fBasics,fda,fdrtool,ff,ffbase,fGarch,fields,filehash,findpython,fit.models,flexclust,flexmix,flexsurv,FNN,fontBitstreamVera,fontcm,fontLiberation,fontquiver,forcats,foreach,formatR,Formula,fpc,fracdiff,FSelector,fTrading,fts,functional,futile.logger,futile.options,GA,gam,gamair,GAMBoost,gamlss,gamlss.data,gamlss.dist,gamm4,gapminder,gbm,gclus,gdata,gdtools,gee,geepack,GeneralizedHyperbolic,geometry,geosphere,GERGM,getopt,GGally,ggm,ggplot2,ggplot2movies,ggthemes,git2r,glasso,glmmML,glmnet,glmnetUtils,GlobalOptions,glue,gmailr,gmm,gmodels,gnm,gof,goftest,googleVis,gpairs,GPArotation,gpclib,gplots,gridBase,gridExtra,gss,gstat,gsubfn,gtable,gtools,haven,hdi,heatmaply,heplots,hexbin,highlight,highr,Hmisc,hms,HSAUR,HSAUR2,HSAUR3,htmlTable,htmltools,htmlwidgets,httpuv,huge,hunspell,hwriter,ibdreg,igraph,igraphdata,ineq,influenceR,inline,intergraph,intervals,ipred,IRdisplay,irlba,Iso,ISwR,iterators,itertools,janeaustenr,jose,jpeg,keras,kernlab,kinship2,klaR,knitr,koRpus,labeling,Lahman,lambda.r,lars,latentnet,latticeExtra,lava,lavaan,lavaan.survey,lava.tobit,lazyeval,lazyrmd,leaps,LearnBayes,lfe,linprog,lintr,lisrelToR,listviewer,lme4,lmerTest,lmodel2,lmtest,locfit,logspline,lokern,longmemo,loo,lpSolve,lsmeans,lubridate,magic,magrittr,mail,manipulate,mapdata,mapproj,maps,maptools,markdown,Matching,MatchIt,Matrix,matrixcalc,MatrixModels,matrixStats,maxent,maxLik,mboost,mclust,mcmc,MCMCpack,mda,mediation,memoise,MEMSS,mets,mi,mice,microbenchmark,mime,miniUI,minqa,mirt,mirtCAT,misc3d,miscTools,mitools,mix,mlbench,MLmetrics,mlmRev,mlogit,mnormt,mockery,ModelMetrics,modelr,modeltools,mondate,mpath,MplusAutomation,MPV,mratios,msm,mstate,muhaz,multcomp,multcompView,multicool,multiwayvcov,munsell,mvinfluence,mvtnorm,nanotime,ndtv,neighbr,network,networkDynamic,networksis,neuralnet,nloptr,NLP,NMF,nnls,nor1mix,nortest,np,numDeriv,nws,nycflights13,OpenMPController,OpenMx,openssl,openxlsx,optextras,optimx,orcutt,ordinal,oz,packrat,pamr,pan,pander,party,partykit,pastecs,pbapply,pbivnorm,pbkrtest,PBSmapping,pcaPP,pcse,penalized,PerformanceAnalytics,permute,pixmap,pkgconfig,pkgKitten,pkgmaker,PKI,PKPDmodels,plm,plogr,plotly,plotmo,plotrix,pls,plumber,plyr,pmml,pmmlTransformations,png,poLCA,polspline,polyclip,polycor,prabclus,praise,prefmod,prettyunits,pROC,processx,prodlim,profdpm,profileModel,progress,proto,proxy,pryr,pscl,pspline,psych,psychotools,psychotree,purrr,pvclust,qap,qgraph,quadprog,quantmod,quantreg,QUIC,qvcalc,R2HTML,R6,randomForest,randomForestSRC,RANN,rappdirs,raster,rasterVis,rbenchmark,R.cache,Rcgmin,RColorBrewer,Rcpp,RcppArmadillo,RcppCCTZ,RcppEigen,RcppParallel,Rcsdp,R.devices,readr,readstata13,readxl,registry,relevent,relimp,rem,rematch,repr,reshape,reshape2,reticulate,rex,rgenoud,rgexf,RH2,rjson,RJSONIO,rlang,rlecuyer,rmarkdown,rmeta,R.methodsS3,rms,RMySQL,rngtools,robust,robustbase,rockchalk,ROCR,R.oo,Rook,roxygen2,rpart.plot,rpf,Rpoppler,RPostgreSQL,rprojroot,rrcov,R.rsp,RSclient,rsconnect,Rserve,rsm,Rsolnp,RSQLite,rstantools,rstudioapi,RSVGTipsDevice,RTextTools,Rttf2pt1,RUnit,R.utils,rversions,rvest,Rvmmin,RWeka,RWekajars,sandwich,scagnostics,scales,scalreg,scatterplot3d,SEL,selectr,sem,semPlot,semTools,semver,seriation,setRNG,sfsmisc,shape,shapefiles,shinyAce,shinyBS,shinydashboard,shinyjs,shinythemes,SimComp,simsem,SkewHyperbolic,slackr,slam,sn,sna,snow,SnowballC,snowfall,som,sourcetools,sp,spacetime,spam,spam64,SparseM,spd,spdep,speedglm,sphet,splm,spls,sqldf,stabledist,stabs,StanHeaders,statmod,statnet,statnet.common,stringdist,stringi,stringr,strucchange,subselect,superpc,SuppDists,survey,svglite,svGUI,svUnit,synchronicity,systemfit,tables,tau,TeachingDemos,tensor,tensorA,tensorflow,tergm,testit,testthat,texreg,tfruns,TH.data,threejs,tibble,tidyr,tidyselect,tidyverse,tikzDevice,timeDate,timereg,timeSeries,tis,tm,tnam,tree,trimcluster,tripack,truncdist,truncnorm,truncreg,trust,TSA,tseries,tsna,TSP,TTR,tufte,tweedie,ucminf,uniReg,unmarked,urca,vars,varSelRF,vcd,vegan,viridis,viridisLite,visNetwork,wbstats,webshot,webutils,whisker,whoami,withr,wordcloud,wordcloud2,xergm.common,xgboost,xlsx,xlsxjars,XML,xtable,yaml,zic,zipcode,ztable"
-fi
-
-# --- archive
-# do we need to create an archive/tar.gz file?
-# time consuming and requires 2x s3 storage ---
-if [[ -z "$CREATE_ARCHIVE" ]]; then export CREATE_ARCHIVE=false; fi
-
-# --- s3
-# prefix
-if [[ -z "$S3_SDN_PREFIX" ]]; then export S3_SDN_PREFIX="software"; fi
-# skip if source package is already in s3 ---
-if [[ -z "$SKIP_IF_EXISTS" ]]; then export SKIP_IF_EXISTS=true; fi
-
-# --- instance
-if [[ -z "$INSTANCE_ID" ]]; then export INSTANCE_ID=$(curl -s 169.254.169.254/latest/meta-data/instance-id); fi
-if [[ -z "$INSTANCE_VOLUME_ID" ]]; then
-    export INSTANCE_VOLUME_ID=$(aws ec2 describe-instances \
-        --instance-ids "$INSTANCE_ID" \
-        --query "Reservations[].Instances[].BlockDeviceMappings[].Ebs[].VolumeId" \
-        --output text)
-fi
-
-# --- image
-if [[ -z "$IMAGE_TYPE" ]]; then export IMAGE_TYPE="base"; fi
-
-### functions
-log(){
+function log(){
 
     # Log message to stdout
     local MSG="$1"
@@ -122,12 +33,84 @@ function parse_args(){
     while [[ $# > 1 ]]; do
         KEY="$1"
         case $KEY in
-            --sdlc)
-            export SDLC="$2"
+             --action)
+            export ACTION="$2"
+            shift
+            ;;
+            --apps)
+            export APPS="$2"
             shift
             ;;
             --app_id)
             export APP_ID="$2"
+            shift
+            ;;
+            --bid_price)
+            export BID_PRICE="$2"
+            shift
+            ;;
+            --build_dir)
+            export BUILD_DIR="$2"
+            shift
+            ;;
+            --component)
+            export COMPONENT="$2"
+            shift
+            ;;
+            --config_name)
+            export CONFIG_NAME="$2"
+            shift
+            ;;
+            --config_endpoint)
+            export CONFIG_ENDPOINT="$2"
+            shift
+            ;;
+            --creator)
+            export CREATOR="$2"
+            shift
+            ;;
+            --env)
+            export ENV="$2"
+            shift
+            ;;
+            --image_type)
+            export IMAGE_TYPE="$2"
+            shift
+            ;;
+            --log_level)
+            export LOG_LEVEL="$2"
+            shift
+            ;;
+            --s3_staging_dir)
+            export S3_STAGING_DIR="$2"
+            shift
+            ;;
+            --skip_cran_core_install)
+            export SKIP_CRAN_CORE_INSTALL="$2"
+            shift
+            ;;
+            --skip_cran_extra_install)
+            export SKIP_CRAN_EXTRA_INSTALL="$2"
+            shift
+            ;;
+            --skip_if_exists)
+            export SKIP_IF_EXISTS="$2"
+            shift
+            ;;
+            --source_artifact)
+            export SOURCE_ARTIFACT="$2"
+            shift
+            ;;
+            --stack_name)
+            export STACK_NAME="$2"
+            shift
+            ;;
+            --upload_artifact_to_s3)
+            export UPLOAD_ARTIFACT_TO_S3="$2"
+            shift
+            ;;
+            --upstream_build_id)
+            export UPSTREAM_BUILD_ID="$2"
             shift
             ;;
             *)
@@ -138,6 +121,138 @@ function parse_args(){
     done
 }
 
-# END FUNCTION DEFINITIONS
+function init_config(){
 
+    # install configparser module, download config ini from s3,
+    # initialize bash variables
+
+    local CONFIG_NAME="$1"
+    local CONFIG_ENDPOINT="$2"
+
+    local CONFIG_FILE="$CONFIG_NAME.ini"
+    local CONFIG_FILE_BASH="$CONFIG_NAME-env_vars.sh"
+
+    log "started installing configparser"
+    pip install configparser --user > /dev/null
+
+    log "started downloading config file from $CONFIG_ENDPOINT"
+    aws s3 cp "$CONFIG_ENDPOINT/$CONFIG_FILE" . --sse > /dev/null
+
+    log "started initializing environment variables"
+    python config_man.py --action init_env_vars --config_file "$CONFIG_FILE"
+    source "$CONFIG_NAME-env_vars.sh"
+
+    log "environment variables:"
+    env | egrep "^MLIY_" | sort
+
+}
+
+function update_config(){
+
+    # get stack output, normalize new config entries,
+    # update config ini, upload new config ini to s3
+
+    local COMPONENT="$1"
+    local CONFIG_NAME="$2"
+    local CONFIG_ENDPOINT="$3"
+
+    local CONFIG_FILE="$CONFIG_NAME.ini"
+    local CONFIG_FILE_BASH="$CONFIG_NAME-env_vars.sh"
+
+    log "started updating $CONFIG_FILE with job output"
+
+    local STACK_OUTPUTS=$(aws cloudformation describe-stacks \
+        --stack-name "$STACK_NAME" \
+        --query "Stacks[*].[Outputs]" \
+        --output text)
+
+    echo "$STACK_OUTPUTS"
+
+    if [[ "$COMPONENT" == "db" ]]; then
+
+        export DB_INSTANCE_ID=$(echo "$STACK_OUTPUTS" | egrep -o "DBInstanceId.*" | awk '{print $2}')
+        export DB_HOSTNAME=$(echo "$STACK_OUTPUTS" | egrep -o "DBAddress.*" | awk '{print $2}')
+
+        read -r -d "" UPDATES <<EOF
+[updates]
+db/hostname = $DB_HOSTNAME
+db/instance_identifier = $DB_INSTANCE_ID
+EOF
+
+    fi
+
+    echo "$UPDATES" > updates.ini
+    python config_man.py --action update --config_file "$CONFIG_FILE" --updates_file "updates.ini"
+
+    log "new config file:"
+    cat "$CONFIG_FILE" | sort
+
+    log "started uploading $CONFIG_FILE to $CONFIG_ENDPOINT"
+    aws s3 cp "$CONFIG_FILE" "$CONFIG_ENDPOINT/$CONFIG_FILE" --sse > /dev/null
+
+}
+
+function init_aws_vars(){
+
+    if [[ -z "$AWS_AZ" ]]; then
+        export AWS_AZ=$(curl --silent http://169.254.169.254/latest/meta-data/placement/availability-zone)
+    fi
+    if [[ -z "$AWS_DEFAULT_REGION" && ! -z "$AWS_AZ" ]]; then
+        export AWS_DEFAULT_REGION=$(echo "$AWS_AZ" | sed 's/[a-z]$//')
+    fi
+    if [[ -z "$AWS_INSTANCE_ID" ]]; then
+        export AWS_INSTANCE_ID=$(curl --silent 169.254.169.254/latest/meta-data/instance-id)
+    fi
+    if [[ -z "$AWS_INSTANCE_TYPE" ]]; then
+        export AWS_INSTANCE_TYPE=$(curl --silent 169.254.169.254/latest/meta-data/instance-type | awk -F. '{print $1}')
+    fi
+    if [[ -z "$AWS_INSTANCE_TYPE_IS_GPU" && ! -z "$AWS_INSTANCE_TYPE" ]]; then
+        export AWS_INSTANCE_TYPE_IS_GPU=$([[ "$AWS_INSTANCE_TYPE" =~ ^(g[23]s?|p[23])$ ]] && echo true || echo false)
+    fi
+    if [[ -z "$AWS_PRIVATE_IP" ]]; then
+        export AWS_PRIVATE_IP="$(curl --silent http://169.254.169.254/latest/meta-data/local-ipv4 2> /dev/null | egrep -o '^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$')"
+    fi
+    if [[ -z "$AWS_PUBLIC_IP" ]]; then
+        export AWS_PUBLIC_IP="$(curl --silent http://169.254.169.254/latest/meta-data/public-ipv4 2> /dev/null | egrep -o '^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$')"
+    fi
+    if [[ -z "$AWS_EBS_VOLUME_SIZE" ]]; then
+        export AWS_EBS_VOLUME_SIZE="80"
+    fi
+    if [[ -z "$AWS_EBS_VOLUME_TYPE" ]]; then
+        export AWS_EBS_VOLUME_TYPE="gp2"
+    fi
+
+
+}
+
+function init_repo_vars(){
+
+    if [[ -z "$CRAN_URL" ]]; then
+        export CRAN_URL="https://cran.r-project.org"
+    fi
+    if [[ -z "$PYPI_INDEX_URL" ]]; then
+        export PYPI_INDEX_URL="https://pypi.org/simple/"
+    fi
+    if [[ -z "$PYPI_EXTRA_INDEX_URL" ]]; then
+        export PYPI_EXTRA_INDEX_URL=""
+    fi
+}
+
+function init_http_proxy_vars(){
+
+    if [[ ! -z "$MLIY_COMMON_PROXY_HOSTNAME" && ! -z "$MLIY_COMMON_PROXY_PORT" ]]; then
+        export PROXY_URL="$MLIY_COMMON_PROXY_HOSTNAME:$MLIY_COMMON_PROXY_PORT"
+        if [[ ! -z "$MLIY_COMMON_PROXY_PROTO" ]]; then
+            PROXY_URL="$MLIY_COMMON_PROXY_PROTO://$PROXY_URL"
+        fi
+        export HTTP_PROXY="$PROXY_URL"
+        export HTTPS_PROXY="$PROXY_URL"
+        export http_proxy="$PROXY_URL"
+        export https_proxy="$PROXY_URL"
+    fi
+
+}
+
+export -f init_config update_config
+export -f init_aws_vars init_http_proxy_vars init_repo_vars
 export -f log parse_args

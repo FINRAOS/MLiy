@@ -14,62 +14,196 @@ limitations under the License. -->
 {% extends 'mliyweb/base-template.html' %}
 {% block content-main %}
 
-        <div class="col-sm-9 col-sm-offset-3 col-md-10 col-md-offset-2 main">
-          <h1 class="page-header">Launch New Cluster</h1>
+<div class=" col-sm-offset-3 col-md-10 col-md-offset-2 main">
+<h1 class="page-header">Launch New Cluster</h1>
 
-          <h2 class="sub-header">Select New Cluster Details</h2>
-          <div class="row">
-          <div class="col-md-8">
-            <div class="table-responsive">
-            <form id="pgform" method=post>
+<h2 class="sub-header">Select New Cluster Details</h2>
+<div class="row">
+    <div class="col-md-8">
+        <form id="pgform" method=post >
             <div class="form-group">
 
                 {% csrf_token %}
-                {{ form }}
+                {{ form.non_field_errors }}
 
-            <input class="btn fat" type="submit" value="Launch Cluster" />
-            </div>
-            </form>
-            </div>
-          </div>
-          <div class="col-md-4">
+                <div class="row">
+                    <div class="col-md-8">
+                        {{ form.instance_type.errors}}
+                        <label for="{{ form.instance_type.id_for_label }}">Instance Type</label>
+                        {{ form.instance_type}}
 
-          </div>
-          </div>
-        </div>
+
+                        <div class="panel panel-info">
+                            <div class="panel-heading">
+                                <h4 class="panel-title">Instance Info</h4>
+                            </div>
+                            <div id="instanceinfo" class="panel-body">
+                            </div>
+                                <table id="iitable" class="table">
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-8">
+                        {{ form.purpose.errors }}
+                        <label for="{{ form.purpose.id_for_label }}">Purpose </label>
+                        {{ form.purpose }}
+
+                        {{ form.core_nodes.errors }}
+                        <label for="{{ form.core_nodes.id_for_label }}">Core Nodes </label>
+                        {{ form.core_nodes }}
+                    </div>
+                </div>
+
+
+                <hr>
+                <div class="row">
+                    <div class="col-md-8">
+
+                        <h3>Pricing</h3>
+                        {{ form.on_demand.errors }}
+                        <label for="{{ form.on_demand.id_for_label }}">Market Type</label>
+                        {{ form.on_demand }}
+                        {{ form.bid_price.errors }}
+                        <label for="{{ form.bid_price.id_for_label }}">Spot Bid Price </label>
+                        {{ form.bid_price }}
+                        <label>Cost Estimate*</label>
+                        <div id="estimate"></div>
+                    </div>
+                </div>
+
+                <hr>
+                <div class="row">
+                    <div class="col-md-8">
+                        <h3>Auto Termination</h3>
+                        <p>Option to terminate the cluster if no activity is detected on Livy or Jupyterhub for the specified time.
+                        <br>Leave at 0:0 to disable Auto Termination</p>
+                        <label for="{{ form.auto_terminate_hours.id_for_label }}">Hours : Minutes </label>
+                        {{ form.auto_terminate_hours.errors }}
+                        {{ form.auto_terminate_minutes.errors }}
+                        <div>{{ form.auto_terminate_hours }} : {{ form.auto_terminate_minutes }}</div>
+                        <input class="btn fat blockForm" type="submit" value="Launch Cluster" />
+                    </div>
+                </div>
+
+                <hr>
+                <h6>*Formula: (EMR_Price + <span id="price_type">Spot_Bid_Price</span>) x (Core_Nodes + Master_Node)</h6>
+                <h6 id="price_message"></h6>
+            </div>
+        </form>
+    </div>
+    </div>
+</div>
 {% endblock %}
 {% block javascript %}
 <script>
-
 $("#launch-cluster").addClass("active");
 // bind to selection for the instance type, pull back specific information for each
 
+var bid_message = "The current Spot Price may be lower than the Spot Bid Price. <br>If the Spot Bid Price is higher than the on Demand Price, the On Demand Price is used instead."
+var on_demand_message = "On Demand pricing is much more expensive than Spot Pricing. <br>It is recommended to use Spot unless there is a critical need for the cluster to stay up."
 
 $("#on_demand").change(function() {
-  console.log("They pressed me!");
-  var pressed = $('#on_demand:checked').is(":checked");
-  console.log("I am pressed: "+pressed)
-  if(pressed){
-    console.log("WE're in here")
+  estimate_emr_price()
+  var on_demand = $("#on_demand").children("option:selected").val()
+  console.log(on_demand)
+  //console.log("I am pressed: "+pressed)
+  if(on_demand=="True"){
     $("#bid_price").addClass("disabled");
     $("#bid_price").attr("disabled","");
+    $("#price_type").text("On_Demand_Price")
+    $("#price_message").html(on_demand_message)
   }
   else
   {
-    console.log("were out tthere")
     $("#bid_price").removeClass("disabled");
     $("#bid_price").removeAttr("disabled");
+    $("#price_type").text("Spot_Bid_Price")
+    $("#price_message").html(bid_message)
   }
 });
 
+// Show instance info such as RAM, CPU, etc.
+populatePanel($("#id_instance_type").prop("options")[0].text);
 
-
+function populatePanel( insttype ) {
+  var url = "/ajax/instance-info/" + insttype;
+  $.get(url, function(json) {
+    if( json === undefined ) {
+      $("#instanceinfo").text("Instance type not found.<br>No data available.");
+      $("#iitable").html("");
+    }
+    localStorage.setItem("instance",JSON.stringify(json))
+    var panel = $("#instanceinfo");
+    panel.text(json.pretty_name);
+    // reverse order?
+    var tbl = "<tr><td>Memory (GB)</td><td>"+
+      json.memory
+      + "<td></tr><tr><td>Cores</td><td>"+
+      json.vCPU
+      +"<td></tr><tr><td>ECU</td><td>"+
+      json.ECU
+      +"<td></tr><tr><td>EBS Optimized</td><td>"+
+      json.ebs_optimized+"<td></tr>"
+      +"<td></tr><tr><td>On Demand Price</td><td>"+
+      "$"+json.pricing['us-east-1'].linux.ondemand+"<td></tr>"
+      +"<td></tr><tr><td>EMR Price</td><td>"+
+      "$"+json.pricing['us-east-1'].emr.emr+"<td></tr>";
+    $("#iitable").html(tbl);
+      estimate_emr_price()
+  }, "json");
+}
 
 $("#id_instance_type").change(function() {
   var select = $("#id_instance_type");
   var selected = select.prop("selectedIndex");
   var insttype = select.prop("options")[selected].text;
-  });
+  populatePanel(insttype);
+});
+
+
+function estimate_emr_price(){
+    var instance_info = JSON.parse(localStorage.getItem("instance"));
+    var nodes = parseFloat($("#id_core_nodes").val());
+    var on_demand = parseFloat(instance_info.pricing['us-east-1'].linux.ondemand);
+    var emr = parseFloat(instance_info.pricing['us-east-1'].emr.emr);
+
+    if(!nodes){
+        console.log("Node count is invalid");
+        return 1
+    }
+    market = $("#on_demand").children("option:selected").val()
+    if(market=='True'){
+        var ec2 = on_demand
+    }
+    else {
+        var bid = parseFloat($("#bid_price").val());
+        if(!bid){
+            console.log("Bid is invalid");
+            return 1
+        }
+
+        if(bid > on_demand){
+            var ec2 = on_demand
+        } else {
+            var ec2 = bid
+        }
+    }
+    var estimate = ((emr + ec2) * (nodes + 1)).toFixed(2)
+
+    $("#estimate").text("$" + estimate + " per Hour")
+}
+
+// Additional triggers for running estimate_emr_price()
+$(document).ready(function(){
+    $("#price_message").html(bid_message)
+    estimate_emr_price();
+});
+$("#id_core_nodes").change(function(){estimate_emr_price()});
+$("#on_demand").change(function() {estimate_emr_price()})
+$("#bid_price").change(function() {estimate_emr_price()})
 
 </script>
 {% endblock %}

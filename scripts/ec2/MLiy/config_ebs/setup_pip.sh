@@ -1,6 +1,4 @@
-# Setup PyPi Repo
-# The script must be sourced by install_MLiy.sh
-
+#!/bin/bash
 # Copyright 2017 MLiy Contributors
 
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -16,4 +14,6 @@
 # limitations under the License.
 
 echo "[global]
-index-url = $PyPi_REPO" > /etc/pip.conf
+timeout = 60
+index-url = ${PYPI_INDEX_URL}
+extra-index-url = ${PYPI_EXTRA_INDEX_URL}" > /etc/pip.conf

@@ -14,15 +14,18 @@
 
 # There is a limit of 4096 bytes on Cloudformation parameters. 
 # Keep the text within the limit or else the instance launch will fail.
+export MLIY_HOME="/opt/mliy"
+export MLIY_SOFTWARE="$MLIY_HOME/software"
+export DOWNLOAD_DIR="/tmp/mliy"
+export ANALYST_HOME="$MLIY_HOME/analyst"
+
 export SOURCE_BUCKET='{{{SOURCE_BUCKET}}}' 
 export SOURCE_SCRIPT='{{{SOURCE_SCRIPT}}}'
 export SOURCE_PACKAGE='{{{SOURCE_PACKAGE}}}'
 export EBS_DEVICE='{{{EBS_DEVICE}}}' 
 export TIME_ZONE='{{{TIME_ZONE}}}' 
 export MANAGER_HOSTNAME='{{{MANAGER_HOSTNAME}}}' 
-export CRAN_REPO='{{{CRAN_REPO}}}' # R Repository URL
-export PyPi_REPO='{{{PyPi_REPO}}}' # Python Repository URL
-export LDAP_TYPE='{{{LDAP_TYPE}}}' 
+export LDAP_TYPE='{{{LDAP_TYPE}}}'
 export LDAP_HOST_NAME='{{{LDAP_HOST_NAME}}}' 
 export LDAP_USER_ID='{{{LDAP_USER_ID}}}' 
 export LDAP_USER_PASSWD_CMD='{{{LDAP_USER_PASSWD_CMD}}}'  
@@ -35,25 +38,25 @@ export WILDCARD_CERTS_ARCHIVE='{{{WILDCARD_CERTS_ARCHIVE}}}'
 export WILDCARD_PUBLIC_CERT='{{{WILDCARD_PUBLIC_CERT}}}' 
 export WILDCARD_PRIVATE_CERT='{{{WILDCARD_PRIVATE_CERT}}}' 
 export CUSTOM_ROOT_CERTS='{{{CUSTOM_ROOT_CERTS}}}'
-export SSM_DOCUMENT='{{{SSM_DOCUMENT}}}'
-export PROXY_SCRIPT='{{{PROXY_SCRIPT}}}'
 export SNAPSHOT_ID='{{{SNAPSHOT_ID}}}'
+export PROXY_URL='{{{PROXY_URL}}}'
+export NO_PROXY='{{{NO_PROXY}}}'
+export RC_FILE_CUSTOM='{{{RC_FILE_CUSTOM}}}'
 
-cd ~
-mkdir MLiy
-cd MLiy
+mkdir "$DOWNLOAD_DIR"
+cd "$DOWNLOAD_DIR"
+
+for I in "HTTP_PROXY=$PROXY_URL" "HTTPS_PROXY=$PROXY_URL" "http_proxy=$PROXY_URL" "https_proxy=$PROXY_URL" "NO_PROXY=$NO_PROXY"; do
+    echo "export $I"
+done > proxy.sh
+source proxy.sh
 
 aws s3 cp "s3://$SOURCE_BUCKET/$SOURCE_PACKAGE" .
 
 tar -zxvf "$SOURCE_PACKAGE"
-
-if [[ -f "scripts/$PROXY_SCRIPT" ]]; then
-    export PROXY_SCRIPT="$(pwd)/scripts/$PROXY_SCRIPT"
-    source "$PROXY_SCRIPT"
-fi
+mv proxy.sh scripts/
 
 export SCRIPT_DIR="$(pwd)/scripts/ec2/MLiy"
-
 if [[ ! -z "$SNAPSHOT_ID" && "$SNAPSHOT_ID" != *"SNAPSHOT_ID"* ]]; then
     SCRIPT_DIR="$SCRIPT_DIR/config_ebs"
 fi

@@ -126,7 +126,7 @@ python manage.py loaddata instances
 END_HEREDOC
 )
 else
-DB_INIT_SCRIPT=''  
+DB_INIT_SCRIPT=''
 fi
 
 
@@ -142,6 +142,7 @@ cat << EOF > runme-as-mliyapp.sh
 ${EXECUTE_PROXY_SCRIPT}
 
 cd ~mliyapp
+mkdir -p mliy-python
 virtualenv -p /usr/bin/python3.4 mliy-python
 
 source mliy-python/bin/activate
@@ -149,8 +150,8 @@ source mliy-python/bin/activate
 pip install -r mliyweb/mliyweb/requirements.txt
 
 cd mliyweb
-python manage.py makemigrations 
-python manage.py migrate 
+python manage.py makemigrations
+python manage.py migrate
 python manage.py makemigrations mliyweb
 python manage.py migrate
 python manage.py sync_cf
@@ -185,7 +186,7 @@ if [[ ! -z "$LDAP_AUTH_URL" ]]; then
 END_HEREDOC
 )
 else
-  LDAP_CONFIG=''  
+  LDAP_CONFIG=''
 fi
 
 if [[ ! -z "$DISABLE_LDAP_CERT_VALIDATION" && "$DISABLE_LDAP_CERT_VALIDATION" == 'true' ]]; then
@@ -297,7 +298,7 @@ chmod -R 755 "$INSTALL_BASE"
 META_INFO_AGS=$(grep app_id /opt/mliy/meta_info.json | awk -F ':' '{print $2}' | sed -e 's/[" ]//g')
 cd mliyweb/mliymagic/mliymagic
 
-for ITEM in addlib; do
+for ITEM in addlib pip-install; do
     SSM_DOCUMENT_NAME=$(python -c "import json,utils; doc = utils.get_ssm_document('$ITEM'); print (doc['name'])")
     SSM_DOCUMENT_CONTENT=$(python -c "import json,utils; doc = utils.get_ssm_document('$ITEM'); print (json.dumps(doc['content']))")
     ITEM_EXISTS=$(aws ssm list-documents --filters "Key=Name,Values=$META_INFO_AGS-$ITEM" --region="$EC2_REGION" | grep DocumentVersion | wc -l)

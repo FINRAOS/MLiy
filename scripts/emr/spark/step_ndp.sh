@@ -84,6 +84,10 @@ function parse_args(){
             export SSM_DOCUMENT="$2"
             shift
             ;;
+            --idle_seconds)
+            export IDLE_SECONDS="$2"
+            shift
+            ;;
             --mliy_targz_file)
             export MLIY_TARGZ_FILE="$2"
             shift
@@ -217,7 +221,7 @@ BrowserMatch "MSIE [2-5]"          nokeepalive ssl-unclean-shutdown          dow
         AuthLDAPBindPassword "${SVC_PASS}"
 
         AuthLDAPGroupAttribute member
-        Require ldap-attribute memberOf="CN=${LDAP_GROUP},${LDAP_GROUP_RDN},${LDAP_BASE_DN}"
+        Require ldap-attribute memberOf="${LDAP_GROUP}"
 
 </LocationMatch>
 
@@ -289,7 +293,7 @@ ProxyPassReverse http://$MASTER_IP/ganglia/
 		ProxyPassReverse http://$MASTER_IP:9443/hub/
 </Location>
 
-<Location ~ "/hub/user/[^/]+/api/kernels/">
+<Location ~ "/hub/user/[^/]+/(api/kernels|terminals/websocket)/">
         # preserve Host header to avoid cross-origin problems
         ProxyPreserveHost On
         ProxyPass ws://$MASTER_IP:9443 timeout=86400 keepalive=On
@@ -353,11 +357,29 @@ if [ getent passwd $USER > /dev/null 2>&1 ] || [ -d "$USER_DIRECTORY" ]; then
     exit 0 # all good. nothing to do.
 else
     echo "...creating account $USER and associated home directory $USER_DIRECTORY"
-	adduser --quiet  --shell=/usr/sbin/nologin --gecos GECOS --disabled-password --disabled-login $USER
+    adduser --quiet  --shell=/bin/bash --gecos GECOS --disabled-password --disabled-login $USER
     # adduser did not succeed?
     if [ $? -ne 0 ] ; then
         exit 1
+        else
+    # Disable blinking Cursor in Jupyterhub
+    mkdir -p $USER_DIRECTORY/.jupyter/nbconfig
+
+cat > $USER_DIRECTORY/.jupyter/nbconfig/notebook.json <<EOF1
+{
+  "CodeCell": {
+    "cm_config": {
+      "autoCloseBrackets": false,
+      "cursorBlinkRate": 0
+     }
+   }
+}
+EOF1
+
+    chown -R $USER:$USER $USER_DIRECTORY/.jupyter
+
     fi
+
 fi
 
 exit 0
@@ -377,7 +399,7 @@ def my_script_hook(spawner):
     username = spawner.user.name # get the username
     script = os.path.join(os.path.dirname(__file__), 'bootstrap.sh') # chmod +x bootstrap.sh
     check_call([script, username])
-	
+
 notebook_dir = os.environ.get('DOCKER_NOTEBOOK_DIR')
 network_name='jupyterhub-network'
 
@@ -398,7 +420,7 @@ c.LDAPAuthenticator.use_ssl = True
 c.LDAPAuthenticator.server_address = '${LDAP_FQDN}'
 c.LDAPAuthenticator.server_port = 636
 c.LDAPAuthenticator.bind_dn_template = ['CN={username},${LDAP_USER_RDN},${LDAP_BASE_DN}']
-c.LDAPAuthenticator.allowed_groups = ['CN=${LDAP_GROUP},${LDAP_GROUP_RDN},${LDAP_BASE_DN}']
+c.LDAPAuthenticator.allowed_groups = ['${LDAP_GROUP}']
 # Active Directory Integration
 c.LDAPAuthenticator.lookup_dn = True
 c.LDAPAuthenticator.lookup_dn_search_filter = '({login_attr}={login})'
@@ -414,10 +436,12 @@ echo "$JUPYTERHUB_CONFIG" > jupyterhub_config.py
 sudo mv jupyterhub_config.py /etc/jupyter/conf/
 
 sudo docker exec jupyterhub bash -c "pip install --upgrade s3contents"
+sudo docker exec jupyterhub bash -c "pip install awscli"
 # Copy info from the master node to docker container
 sudo docker exec jupyterhub bash -c "mkdir -p /mnt/var/lib/info"
 sudo docker cp /mnt/var/lib/info/job-flow.json jupyterhub:/mnt/var/lib/info/job-flow.json
 sudo docker cp /mnt/var/lib/info/extraInstanceData.json jupyterhub:/mnt/var/lib/info/extraInstanceData.json
+
 # Setup addlib_magic extension for iPython
 aws s3 cp $MLIY_TARGZ_FILE .
 MLIY_TARGZ=${MLIY_TARGZ_FILE##*/}
@@ -427,6 +451,22 @@ sudo docker exec jupyterhub bash -c "mkdir /opt/mliy"
 sudo docker cp meta_info.json jupyterhub:/opt/mliy/
 sudo docker cp mliymagic jupyterhub:/opt/mliy/
 sudo docker exec jupyterhub bash -c "cd /opt/mliy/mliymagic; pip install ."
+# Update the version of sparkmagic, install git and gcc
+sudo docker exec jupyterhub bash -c "apt update; apt install -y gcc git; pip install -U sparkmagic"
+
+# Set Auto-termination
+SPARK_SCRIPTS=scripts/emr/spark
+tar -zxvf "$MLIY_TARGZ" "$SPARK_SCRIPTS"/auto_terminate.sh
+chmod 755 "$SPARK_SCRIPTS"/auto_terminate.sh
+sudo mkdir -p /opt/mliy && sudo mv -f "$SPARK_SCRIPTS"/auto_terminate.sh /opt/mliy
+cd /opt/mliy
+sudo ./auto_terminate.sh setAutoTerminate --seconds "$IDLE_SECONDS"
+cd -
+
+# We're explicitly installing notebook here since s3 contents upgrades notebook to 6.0.0, which breaks things.
+sudo docker exec jupyterhub bash -c "pip install notebook==5.7.8"
+# Another hotfix related to pyspark3
+sudo docker exec jupyterhub bash -c "sed -i 's/LANG_PYTHON3/LANG_PYTHON/g' /opt/conda/lib/python3.6/site-packages/sparkmagic/kernels/pyspark3kernel/pyspark3kernel.py"
 
 sudo docker restart jupyterhub
 

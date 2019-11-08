@@ -1,6 +1,4 @@
-# Setup LDAP Authentication and Authorization
-# The script must be sourced by install_MLiy.sh
-
+#!/bin/bash
 # Copyright 2017 MLiy Contributors
 
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -201,7 +199,7 @@ referrals no
 
 map    passwd gecos            displayName
 map    passwd loginShell       "/bin/bash"
-map    passwd homeDirectory    "/home/analyst"
+map    passwd homeDirectory    "$ANALYST_HOME"
 map    passwd gidNumber        "10001"
 
 ${NSLCD_CONFIG}

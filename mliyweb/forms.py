@@ -19,10 +19,10 @@ limitations under the License.
 '''
 from django import forms
 from django.core.exceptions import PermissionDenied, ValidationError
-from django.core.validators import RegexValidator
+from django.core.validators import RegexValidator, MaxLengthValidator
 from . import models
+from mliyweb.utils import get_group_config_settings
 import logging
-
 
 class SelectInstDetailsForm(forms.Form):
 	"""
@@ -115,8 +115,9 @@ class SelectEmrDetailsForm(forms.Form):
 		software_config_id = self.initial['swconfigid']
 
 		alphanumeric = RegexValidator(r'^[ -_0-9a-zA-Z]*$', 'Only alphanumeric characters are allowed.')
+		max_length_256 = MaxLengthValidator(256)
 
-		log = logging.getLogger(__name__)
+		log = logging.getLogger("mliyweb.views")
 		self.error_css_class = "alert alert-danger"
 		zones = ['west', 'east']
 
@@ -126,33 +127,53 @@ class SelectEmrDetailsForm(forms.Form):
 			log.critical("Select instance details called with invalid group!\nInitial = %s", self.initial)
 			raise PermissionDenied
 
-		scitypes = models.Software_Config.objects.get(id=software_config_id) \
+		compatible_instances = models.Software_Config.objects.get(id=software_config_id) \
 			.compatible_instancetypes.all()
 
 		if groupconfig.exclInstances.count() != 0:
-			scitypes = scitypes.exclude(id__in=groupconfig.exclInstances.values('id')).order_by('aws_name')
-		log.debug("scitypes now: %s", scitypes)
+			compatible_instances = compatible_instances.exclude(id__in=groupconfig.exclInstances.values('id')).order_by('aws_name')
+		log.debug("scitypes now: %s", compatible_instances)
 
-		self.fields['instance_type'] = forms.ChoiceField(choices=scitypes.values_list('id', 'aws_name'),
+		self.fields['instance_type'] = forms.ChoiceField(choices=compatible_instances.values_list('id', 'aws_name'),
 														 widget=forms.Select(attrs={'class': 'form-control'}))
 
-		self.fields['purpose'] = forms.CharField(max_length=140, widget=forms.Textarea, validators=[alphanumeric])
+
+		self.fields['purpose'] = forms.CharField(max_length=140, widget=forms.Textarea, validators=[alphanumeric, max_length_256])
 		self.fields['purpose'].widget.attrs.update({'class': 'blockForm'})
 		self.fields['purpose'].widget.attrs.update({'cols': '75'})
 		self.fields['purpose'].widget.attrs.update({'rows': '4'})
-		self.fields['cost_center'] = forms.CharField(max_length=7, min_length=6)
-		self.fields['cost_center'].widget.attrs.update({'class': 'blockForm'})
+
 		self.fields['core_nodes'] = forms.IntegerField(max_value=240, min_value=2, initial=10)
 		self.fields['core_nodes'].widget.attrs.update({'class': 'blockForm'})
-		self.fields['task_nodes'] = forms.IntegerField(max_value=240, min_value=0, initial=0)
-		self.fields['task_nodes'].widget.attrs.update({'class': 'blockForm'})
-		self.fields['on_demand'] = forms.BooleanField(required=False)
-		self.fields['on_demand'].widget.attrs.update({'class': 'blockForm', 'id': 'on_demand'})
+
+
+		choices = ((False, "Spot"),(True, "On Demand"))
+		self.fields['on_demand'] = forms.TypedChoiceField(
+			required=True, choices=choices,
+			coerce=lambda x: x=='True',
+			widget=forms.Select(attrs={'class': 'form-control'}))
+		self.fields['on_demand'].widget.attrs.update({'id': 'on_demand'})
+
 		self.fields['bid_price'] = forms.DecimalField(required=True, max_value=10.00, initial=2, min_value=0,
 													  decimal_places=2)
 		self.fields['bid_price'].widget.attrs.update({'class': 'blockForm', 'id': 'bid_price'})
 
-	# self.fields['cluster_type'] = forms.ChoiceField(choices=zones)
+		default_hours = 0
+		default_minutes = 0
+		if groupconfig.group_settings:
+			try:
+				minutes = int(get_group_config_settings(groupconfig, 'cluster_auto_termination_minutes', 0))
+				default_hours = minutes//60
+				default_minutes = minutes%60
+			except Exception as e:
+				log.exception(e)
+
+
+		self.fields['auto_terminate_hours'] = forms.IntegerField(min_value=0, max_value=71, initial=default_hours, label='Auto Terminate Hours:Minutes')
+		self.fields['auto_terminate_hours'].widget.attrs.update({'id': 'auto_terminate_hours'})
+
+		self.fields['auto_terminate_minutes'] = forms.IntegerField(min_value=0, max_value=59, initial=default_minutes, label='')
+		self.fields['auto_terminate_minutes'].widget.attrs.update({'id': 'auto_terminate_minutes'})
 
 
 	def clean(self):
@@ -162,3 +183,5 @@ class SelectEmrDetailsForm(forms.Form):
 				del self.errors['bid_price']
 
 		return cleaned_data
+
+

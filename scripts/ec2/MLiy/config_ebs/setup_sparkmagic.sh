@@ -1,6 +1,4 @@
-# Setup ODBC
-# The script must be sourced by install_MLiy.sh
-
+#!/bin/bash
 # Copyright 2017 MLiy Contributors
 
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -180,7 +178,7 @@ read -r -d "" CREATE_SESSION_WIDGET <<EOF
 import json
 
 import sparkmagic.utils.configuration as conf
-from sparkmagic.utils.constants import LANG_SCALA, LANG_PYTHON, LANG_PYTHON3
+from sparkmagic.utils.constants import LANG_SCALA, LANG_PYTHON
 from sparkmagic.controllerwidget.abstractmenuwidget import AbstractMenuWidget
 
 

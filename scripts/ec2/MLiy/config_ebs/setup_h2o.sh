@@ -1,7 +1,4 @@
 #!/bin/bash
-# Script to setup MLiy
-# The script expects environment variables as input
-
 # Copyright 2017 MLiy Contributors
 
 # Licensed under the Apache License, Version 2.0 (the "License");

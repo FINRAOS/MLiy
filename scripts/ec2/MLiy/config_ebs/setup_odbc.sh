@@ -1,6 +1,4 @@
 #!/bin/bash
-# The script must be sourced by install_MLiy.sh
-
 # Copyright 2017 MLiy Contributors
 
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -17,6 +15,6 @@
 
 yum -y install unixODBC-devel
 
-"$MLIY_SOFTWARE/r/R-3.5.1/bin/R" -e "install.packages('RODBC', dependencies=TRUE, repos='$CRAN_REPO')"
+"$MLIY_SOFTWARE/r/R-3.5.1/bin/R" -e "install.packages('RODBC', dependencies=TRUE)"
 
 cd "$SCRIPT_DIR"

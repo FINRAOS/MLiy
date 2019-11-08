@@ -221,32 +221,13 @@ Resources:
           Value: RDS Database for MLiy Website
     DeletionPolicy: Delete
 Outputs:
-  JDBCConnectionString:
-    Description: JDBC connection string for database
+  DBInstanceId:
+    Description: Database instance ID
     Value:
-      'Fn::Join':
-        - ''
-        - - 'jdbc:'
-          - Ref: Engine
-          - '://'
-          - 'Fn::GetAtt':
-              - MyDB
-              - Endpoint.Address
-          - ':'
-          - 'Fn::GetAtt':
-              - MyDB
-              - Endpoint.Port
-          - /
-          - Ref: DBName
+      Ref: DBInstanceId
   DBAddress:
-    Description: Address of database endpoint
+    Description: Fully qualified address of database endpoint
     Value:
       'Fn::GetAtt':
         - MyDB
         - Endpoint.Address
-  DBPort:
-    Description: Database endpoint port number
-    Value:
-      'Fn::GetAtt':
-        - MyDB
-        - Endpoint.Port
