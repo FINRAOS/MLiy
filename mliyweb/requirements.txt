@@ -1,5 +1,5 @@
 boto3
-Django==2.2.6
+Django==2.2.27
 botocore
 django-ipware==1.1.6
 docutils==0.12
