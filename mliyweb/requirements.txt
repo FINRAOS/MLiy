@@ -11,7 +11,7 @@ pytz==2015.4
 s3transfer==0.2.1
 six==1.10.0
 ldap3==2.3
-requests==2.22.0
+requests==2.31.0
 pyyaml
 mod_wsgi
 python-json-logger==0.1.11
